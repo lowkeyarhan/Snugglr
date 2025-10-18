@@ -17,9 +17,13 @@ export default {
         "text-dark": "#e2e8f0",
         "muted-light": "#64748b",
         "muted-dark": "#94a3b8",
+        "text-muted-light": "#6E6E73",
+        "text-muted-dark": "#8E8E93",
       },
       fontFamily: {
         display: ["Plus Jakarta Sans", "sans-serif"],
+        body: ["Noto Sans", "sans-serif"],
+        pacifico: ["Pacifico", "cursive"],
       },
       borderRadius: {
         DEFAULT: "1rem",
@@ -29,6 +33,9 @@ export default {
       },
       boxShadow: {
         glow: "0 0 20px 5px rgba(108, 43, 238, 0.3)",
+        soft: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)",
+        lifted:
+          "0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -4px rgba(0, 0, 0, 0.07)",
       },
       keyframes: {
         float: {
