@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import Sidebar from "../components/Sidebar";
 
 // Mock Data
 const mockStories = [
@@ -252,137 +253,12 @@ export default function Home() {
   return (
     <div className="relative flex h-screen w-full overflow-hidden">
       <div className="flex h-full w-full">
-        {/* Instagram-like Sidebar - Fixed Position */}
-        <aside className="w-72 flex flex-col border-r border-slate-200 dark:border-slate-800 hidden lg:flex h-screen bg-white dark:bg-slate-950 flex-shrink-0">
-          {/* Branding */}
-          <div className="flex items-center gap-3 px-6 py-8">
-            <div className="h-8 w-8 text-primary flex-shrink-0">
-              <svg
-                fill="none"
-                viewBox="0 0 48 48"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  clipRule="evenodd"
-                  d="M24 4H6V17.3333V30.6667H24V44H42V30.6667V17.3333H24V4Z"
-                  fill="currentColor"
-                  fillRule="evenodd"
-                />
-              </svg>
-            </div>
-            <h1 className="text-3xl font-light tracking-tight" style={{ fontFamily: "'Pacifico', cursive" }}>
-              Snugglr
-            </h1>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex flex-col gap-2 px-2 py-4 flex-1">
-            <button
-              className="flex items-center gap-4 px-3 py-3.5 text-base font-normal rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all duration-200 text-slate-900 dark:text-slate-100 cursor-pointer group"
-              onClick={() => console.log("Chats")}
-            >
-              <span className="material-symbols-outlined text-[28px] group-hover:scale-105 transition-transform">
-                chat_bubble
-              </span>
-              <span>Chats</span>
-            </button>
-            <button
-              className="flex items-center gap-4 px-3 py-3.5 text-base font-normal rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all duration-200 text-slate-900 dark:text-slate-100 cursor-pointer group"
-              onClick={() => console.log("Hints")}
-            >
-              <span className="material-symbols-outlined text-[28px] group-hover:scale-105 transition-transform">
-                lightbulb
-              </span>
-              <span>Hints</span>
-            </button>
-            <button
-              className="flex items-center gap-4 px-3 py-3.5 text-base font-normal rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all duration-200 text-slate-900 dark:text-slate-100 cursor-pointer group"
-              onClick={() => console.log("Settings")}
-            >
-              <span className="material-symbols-outlined text-[28px] group-hover:scale-105 transition-transform">
-                settings
-              </span>
-              <span>Settings</span>
-            </button>
-            <button
-              className="flex items-center gap-4 px-3 py-3.5 text-base font-normal rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all duration-200 text-slate-900 dark:text-slate-100 cursor-pointer group"
-              onClick={() => console.log("Profile")}
-            >
-              <span className="material-symbols-outlined text-[28px] group-hover:scale-105 transition-transform">
-                account_circle
-              </span>
-              <span>Profile</span>
-            </button>
-          </nav>
-
-          {/* Notifications Pane */}
-          <div className="border-t border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-3 overflow-y-auto">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-2">
-              Notifications
-            </h3>
-            <div className="space-y-2">
-              <button className="w-full p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors text-left">
-                <div className="flex items-start gap-3">
-                  <div
-                    className="w-10 h-10 rounded-full bg-cover bg-center flex-shrink-0"
-                    style={{
-                      backgroundImage:
-                        'url("https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop")',
-                    }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm leading-tight">
-                      <span className="font-semibold">Sarah</span> sent you a message
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      2m ago
-                    </p>
-                  </div>
-                </div>
-              </button>
-              <button className="w-full p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors text-left">
-                <div className="flex items-start gap-3">
-                  <div
-                    className="w-10 h-10 rounded-full bg-cover bg-center flex-shrink-0"
-                    style={{
-                      backgroundImage:
-                        'url("https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&h=200&fit=crop")',
-                    }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm leading-tight">
-                      <span className="font-semibold">New Match!</span> You matched with someone
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      1h ago
-                    </p>
-                  </div>
-                </div>
-              </button>
-              <button className="w-full p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors text-left">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-outlined text-primary text-xl">
-                      favorite
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm leading-tight">
-                      Someone liked your confession
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      3h ago
-                    </p>
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </aside>
+        {/* Sidebar */}
+        <Sidebar />
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto h-screen">
-          <div className="px-6 py-8 max-w-6xl mx-auto w-full">
+          <div className="px-6 py-8 w-full">
             <div className="flex flex-col gap-8">
               {/* Stories Section */}
               <div className="flex w-full overflow-x-auto pb-4 scrollbar-hide">
