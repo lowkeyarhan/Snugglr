@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import Navbar from "../components/navbar";
 
 // Mock Data
 const mockStories = [
@@ -195,12 +194,6 @@ const mockConfessions = [
   },
 ];
 
-const mockUserProfile = {
-  name: "You",
-  avatar:
-    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=400&fit=crop",
-};
-
 export default function Home() {
   const [confessions, setConfessions] = useState(mockConfessions);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
@@ -259,54 +252,74 @@ export default function Home() {
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
       <div className="flex h-full grow flex-col">
-        {/* Header */}
-        <Navbar
-          showSearch={true}
-          currentUser={mockUserProfile}
-          onSearchChange={(value) => console.log("Search:", value)}
-          onProfileClick={() => console.log("Profile clicked")}
-        />
-
         <div className="flex flex-1">
-          {/* Sidebar */}
-          <aside className="w-80 flex-col border-r border-slate-200/80 dark:border-slate-800/80 p-6 hidden lg:flex">
-            <nav className="flex flex-col gap-2">
+          {/* Instagram-like Sidebar */}
+          <aside className="w-72 flex flex-col border-r border-slate-200/80 dark:border-slate-800/80 hidden lg:flex sticky top-0 h-screen bg-white dark:bg-slate-950 overflow-y-auto">
+            {/* Branding */}
+            <div className="flex items-center gap-3 px-6 py-6 border-b border-slate-200/50 dark:border-slate-800/50">
+              <div className="h-10 w-10 text-primary">
+                <svg
+                  fill="none"
+                  viewBox="0 0 48 48"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    clipRule="evenodd"
+                    d="M24 4H6V17.3333V30.6667H24V44H42V30.6667V17.3333H24V4Z"
+                    fill="currentColor"
+                    fillRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-2xl font-black">Snugglr</h1>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex flex-col gap-1 px-3 py-6 flex-1">
               <button
-                className="flex items-center gap-3 rounded-full bg-primary/10 dark:bg-primary/20 px-4 py-3 text-primary cursor-pointer"
+                className="flex items-center gap-4 px-4 py-3 text-base font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors text-slate-800 dark:text-slate-100 cursor-pointer"
                 onClick={() => console.log("Chats")}
               >
-                <span className="material-symbols-outlined">chat</span>
-                <span className="font-bold">Chats</span>
+                <span className="material-symbols-outlined text-2xl">
+                  chat_bubble
+                </span>
+                <span>Chats</span>
               </button>
               <button
-                className="flex items-center gap-3 rounded-full px-4 py-3 hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary cursor-pointer transition-colors"
+                className="flex items-center gap-4 px-4 py-3 text-base font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors text-slate-800 dark:text-slate-100 cursor-pointer"
                 onClick={() => console.log("Hints")}
               >
-                <span className="material-symbols-outlined">lightbulb</span>
-                <span className="font-medium">Hints</span>
+                <span className="material-symbols-outlined text-2xl">
+                  lightbulb
+                </span>
+                <span>Hints</span>
               </button>
               <button
-                className="flex items-center gap-3 rounded-full px-4 py-3 hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary cursor-pointer transition-colors"
+                className="flex items-center gap-4 px-4 py-3 text-base font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors text-slate-800 dark:text-slate-100 cursor-pointer"
                 onClick={() => console.log("Settings")}
               >
-                <span className="material-symbols-outlined">settings</span>
-                <span className="font-medium">Settings</span>
+                <span className="material-symbols-outlined text-2xl">
+                  settings
+                </span>
+                <span>Settings</span>
               </button>
               <button
-                className="flex items-center gap-3 rounded-full px-4 py-3 hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary cursor-pointer transition-colors"
+                className="flex items-center gap-4 px-4 py-3 text-base font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors text-slate-800 dark:text-slate-100 cursor-pointer"
                 onClick={() => console.log("Profile")}
               >
-                <span className="material-symbols-outlined">person</span>
-                <span className="font-medium">Profile</span>
+                <span className="material-symbols-outlined text-2xl">
+                  account_circle
+                </span>
+                <span>Profile</span>
               </button>
             </nav>
 
             {/* Notifications Pane */}
-            <div className="mt-6 flex flex-col gap-3">
-              <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 px-1">
+            <div className="border-t border-slate-200/50 dark:border-slate-800/50 px-4 py-6 flex flex-col gap-3">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 px-2">
                 Notifications
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-3 text-sm">
                 <div className="p-3 rounded-lg bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 shadow-sm">
                   <div className="flex items-start gap-3">
                     <div
@@ -367,7 +380,7 @@ export default function Home() {
           </aside>
 
           {/* Main Content */}
-          <main className="flex-1 px-6 py-4">
+          <main className="flex-1 px-6 py-8 max-w-6xl mx-auto w-full">
             <div className="flex flex-col gap-8">
               {/* Stories Section */}
               <div className="flex w-full overflow-x-auto pb-4 scrollbar-hide">
@@ -401,22 +414,6 @@ export default function Home() {
 
               {/* Match Cards Carousel */}
               <div className="relative w-full">
-                {/* Carousel Navigation Indicators
-                <div className="flex justify-center gap-2 mb-6">
-                  {mockMatches.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => scrollToMatch(index)}
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        index === currentMatchIndex
-                          ? "w-8 bg-primary"
-                          : "w-2 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-600"
-                      }`}
-                      aria-label={`Go to match ${index + 1}`}
-                    />
-                  ))}
-                </div> */}
-
                 {/* Scrollable Match Cards Container */}
                 <div className="relative overflow-hidden py-4">
                   <div
