@@ -216,11 +216,11 @@ export default function Auth() {
                 style={{ "--order": 0 } as React.CSSProperties}
               >
                 <div className="flex items-center justify-center gap-3 text-slate-800 dark:text-white mb-4">
-                  <h1 className="text-4xl font-extrabold text-text-light dark:text-text-dark">
+                  <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter font-pacifico text-text-light dark:text-text-dark">
                     Snugglr
                   </h1>
                 </div>
-                <p className="mt-2 text-lg text-muted-light dark:text-muted-dark">
+                <p className="mt-8 text-lg text-muted-light dark:text-muted-dark">
                   Find your snuggle partner on campus. Anonymously.
                 </p>
               </div>
@@ -309,12 +309,13 @@ export default function Auth() {
                   {!isSignUp && (
                     <div className="flex items-center justify-end">
                       <div className="text-sm">
-                        <a
-                          className="font-medium text-primary hover:text-primary-light dark:hover:text-primary-light"
-                          href="#"
+                        <button
+                          type="button"
+                          className="font-medium text-primary hover:text-primary-light dark:hover:text-primary-light cursor-pointer"
+                          onClick={(e) => e.preventDefault()}
                         >
                           Forgot your password?
-                        </a>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -337,19 +338,21 @@ export default function Auth() {
                 style={{ "--order": 2 } as React.CSSProperties}
               >
                 By continuing, you agree to our{" "}
-                <a
-                  className="font-medium text-primary hover:underline"
-                  href="#"
+                <button
+                  type="button"
+                  className="font-medium text-primary hover:underline cursor-pointer"
+                  onClick={(e) => e.preventDefault()}
                 >
                   Terms of Service
-                </a>{" "}
+                </button>{" "}
                 and{" "}
-                <a
-                  className="font-medium text-primary hover:underline"
-                  href="#"
+                <button
+                  type="button"
+                  className="font-medium text-primary hover:underline cursor-pointer"
+                  onClick={(e) => e.preventDefault()}
                 >
                   Privacy Policy
-                </a>
+                </button>
                 .
               </p>
             </div>

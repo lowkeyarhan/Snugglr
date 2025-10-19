@@ -1,4 +1,6 @@
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import LandingNavbar from "../components/landingNavbar";
 
 // Animation variants
 const fadeInUp = {
@@ -48,64 +50,20 @@ const scaleIn = {
 };
 
 export default function Landing() {
+  const navigate = useNavigate();
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
       <div className="layout-container flex h-full grow flex-col">
         {/* Header */}
-        <header className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-800/30">
-          <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-10 w-10 text-primary">
-                <svg
-                  fill="none"
-                  viewBox="0 0 48 48"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <g clipPath="url(#clip0_6_319)">
-                    <path
-                      d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z"
-                      fill="currentColor"
-                    ></path>
-                  </g>
-                  <defs>
-                    <clipPath id="clip0_6_319">
-                      <rect fill="white" height="48" width="48"></rect>
-                    </clipPath>
-                  </defs>
-                </svg>
-              </div>
-              <h2 className="text-3xl font-bold font-pacifico">Snugglr</h2>
-            </div>
-            <div className="flex flex-1 items-center justify-end gap-6">
-              <nav className="hidden md:flex items-center gap-8">
-                <a
-                  className="text-sm font-medium text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors"
-                  href="#how-it-works"
-                >
-                  How it Works
-                </a>
-                <a
-                  className="text-sm font-medium text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors"
-                  href="#features"
-                >
-                  Features
-                </a>
-                <a
-                  className="text-sm font-medium text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors"
-                  href="#faq"
-                >
-                  FAQ
-                </a>
-              </nav>
-              <a
-                className="flex items-center justify-center overflow-hidden rounded-full h-11 px-8 bg-primary text-white text-sm font-bold tracking-wide hover:bg-primary-dark transition-colors shadow-soft"
-                href="#signup"
-              >
-                <span className="truncate">Join the Waitlist</span>
-              </a>
-            </div>
-          </div>
-        </header>
+        <LandingNavbar />
 
         <main className="flex flex-1 flex-col">
           {/* Hero Section */}
@@ -142,21 +100,21 @@ export default function Landing() {
                 className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
                 variants={fadeInUp}
               >
-                <a
-                  className="flex items-center justify-center w-full sm:w-auto overflow-hidden rounded-full h-14 px-10 bg-primary text-white text-lg font-bold tracking-wide shadow-lifted hover:bg-primary-dark transform hover:scale-105 transition-all duration-300"
-                  href="#signup"
+                <button
+                  onClick={() => scrollToSection("signup")}
+                  className="flex items-center justify-center w-full sm:w-auto overflow-hidden rounded-full h-14 px-10 bg-primary text-white text-lg font-bold tracking-wide shadow-lifted hover:bg-primary-dark transform hover:scale-105 transition-all duration-300 cursor-pointer"
                 >
                   <span className="truncate">Get Early Access</span>
                   <span className="material-symbols-outlined ml-2">
                     arrow_forward
                   </span>
-                </a>
-                <a
-                  className="flex items-center justify-center w-full sm:w-auto overflow-hidden rounded-full h-14 px-10 bg-card-light/50 dark:bg-card-dark/50 backdrop-blur-md text-text-light dark:text-text-dark text-lg font-bold tracking-wide shadow-lifted hover:bg-gray-100/70 dark:hover:bg-card-dark/70 transform hover:scale-105 transition-all duration-300 border border-gray-200/50 dark:border-gray-700/50"
-                  href="#how-it-works"
+                </button>
+                <button
+                  onClick={() => navigate("/auth")}
+                  className="flex items-center justify-center w-full sm:w-auto overflow-hidden rounded-full h-14 px-10 bg-card-light/50 dark:bg-card-dark/50 backdrop-blur-md text-text-light dark:text-text-dark text-lg font-bold tracking-wide shadow-lifted hover:bg-gray-100/70 dark:hover:bg-card-dark/70 transform hover:scale-105 transition-all duration-300 border border-gray-200/50 dark:border-gray-700/50 cursor-pointer"
                 >
-                  <span className="truncate">How it Works</span>
-                </a>
+                  <span className="truncate">Join now</span>
+                </button>
               </motion.div>
               <motion.p
                 className="mt-8 text-sm text-text-muted-light dark:text-text-muted-dark"
@@ -541,24 +499,24 @@ export default function Landing() {
 
               {/* Navigation Links */}
               <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-                <a
-                  className="text-sm text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors"
-                  href="#how-it-works"
+                <button
+                  onClick={() => scrollToSection("how-it-works")}
+                  className="text-sm text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors cursor-pointer"
                 >
                   How it Works
-                </a>
-                <a
-                  className="text-sm text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors"
-                  href="#features"
+                </button>
+                <button
+                  onClick={() => scrollToSection("features")}
+                  className="text-sm text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors cursor-pointer"
                 >
                   Features
-                </a>
-                <a
-                  className="text-sm text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors"
-                  href="#faq"
+                </button>
+                <button
+                  onClick={() => scrollToSection("faq")}
+                  className="text-sm text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors cursor-pointer"
                 >
                   FAQ
-                </a>
+                </button>
                 <span className="text-text-muted-light dark:text-text-muted-dark">
                   •
                 </span>
@@ -568,18 +526,18 @@ export default function Landing() {
                 >
                   Contact
                 </a>
-                <a
-                  className="text-sm text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors"
-                  href="#"
+                <button
+                  onClick={(e) => e.preventDefault()}
+                  className="text-sm text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors cursor-pointer"
                 >
                   Privacy Policy
-                </a>
-                <a
-                  className="text-sm text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors"
-                  href="#"
+                </button>
+                <button
+                  onClick={(e) => e.preventDefault()}
+                  className="text-sm text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary transition-colors cursor-pointer"
                 >
                   Terms of Service
-                </a>
+                </button>
               </div>
 
               {/* Bottom Section */}
