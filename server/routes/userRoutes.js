@@ -1,0 +1,36 @@
+import express from "express";
+import {
+  updateProfile,
+  getPotentialMatches,
+  getUserById,
+} from "../controllers/userController.js";
+import authMiddleware from "../middleware/authMiddleware.js";
+
+const router = express.Router();
+
+router.put("/profile", authMiddleware, updateProfile);
+router.get("/potential-matches", authMiddleware, getPotentialMatches);
+router.get("/:userId", authMiddleware, getUserById);
+router.get("/community/:community", authMiddleware, async (req, res) => {
+  try {
+    const { community } = req.params;
+    const users = await (await import("../models/user.js")).default
+      .find({ community })
+      .select("-password");
+    res.status(200).json({
+      success: true,
+      data: {
+        users,
+      },
+    });
+  } catch (error) {
+    console.error(`Error fetching users by community: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching users by community",
+      error: error.message,
+    });
+  }
+});
+
+export default router;
