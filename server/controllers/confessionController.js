@@ -1,4 +1,6 @@
 import Confession from "../models/Confession.js";
+import User from "../models/user.js";
+import { createAndEmitNotification } from "../utils/notificationHelper.js";
 
 export const createConfession = async (req, res) => {
   try {
@@ -98,6 +100,38 @@ export const likeConfession = async (req, res) => {
     confession.likesCount += 1;
     await confession.save();
 
+    // Create notification for the confession author
+    try {
+      const confessionAuthor = await User.findOne({
+        username: confession.username,
+        community: confession.community,
+      });
+
+      if (
+        confessionAuthor &&
+        confessionAuthor._id.toString() !== req.user._id.toString()
+      ) {
+        const io = req.app.get("io");
+        await createAndEmitNotification(
+          {
+            recipient: confessionAuthor._id,
+            sender: req.user._id,
+            type: "confession_like",
+            title: "New Like on Confession",
+            message: `Someone liked your confession`,
+            relatedConfession: confession._id,
+            actionUrl: `/confessions/${confession._id}`,
+          },
+          io
+        );
+      }
+    } catch (notifError) {
+      console.error(
+        `Error creating like notification: ${notifError.message}`
+      );
+      // Don't fail the request if notification creation fails
+    }
+
     return res.status(200).json({
       success: true,
       message: "Confession liked",
@@ -154,6 +188,38 @@ export const commentOnConfession = async (req, res) => {
     const populatedConfession = await Confession.findById(confessionId)
       .populate("comments.user", "username name image")
       .lean();
+
+    // Create notification for the confession author
+    try {
+      const confessionAuthor = await User.findOne({
+        username: confession.username,
+        community: confession.community,
+      });
+
+      if (
+        confessionAuthor &&
+        confessionAuthor._id.toString() !== userId.toString()
+      ) {
+        const io = req.app.get("io");
+        await createAndEmitNotification(
+          {
+            recipient: confessionAuthor._id,
+            sender: userId,
+            type: "confession_comment",
+            title: "New Comment on Confession",
+            message: `${req.user.username} commented on your confession`,
+            relatedConfession: confession._id,
+            actionUrl: `/confessions/${confession._id}`,
+          },
+          io
+        );
+      }
+    } catch (notifError) {
+      console.error(
+          `Error creating comment notification: ${notifError.message}`
+      );
+      // Don't fail the request if notification creation fails
+    }
 
     res.status(201).json({
       success: true,

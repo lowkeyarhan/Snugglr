@@ -11,9 +11,12 @@ import userRoutes from "./routes/userRoutes.js";
 import matchRoutes from "./routes/matchRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import confessionRoutes from "./routes/confessionRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import domainRoutes from "./routes/domainRoutes.js";
 
 import errorHandler from "./utils/errorHandler.js";
 import chatSocket from "./sockets/chatSocket.js";
+import notificationSocket from "./sockets/notificationSocket.js";
 
 dotenv.config();
 
@@ -62,6 +65,8 @@ app.use("/api/user", userRoutes);
 app.use("/api/match", matchRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/confessions", confessionRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/domains", domainRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
@@ -72,7 +77,11 @@ app.use((req, res) => {
 
 app.use(errorHandler);
 
+// Make io available globally for notification emissions
+app.set("io", io);
+
 chatSocket(io);
+notificationSocket(io);
 
 let PORT = parseInt(process.env.PORT) || 8081;
 

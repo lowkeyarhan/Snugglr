@@ -1,6 +1,7 @@
 import Chat from "../models/chat.js";
 import Message from "../models/Message.js";
 import User from "../models/user.js";
+import { createAndEmitNotification } from "../utils/notificationHelper.js";
 
 export const getChats = async (req, res) => {
   try {
@@ -19,7 +20,7 @@ export const getChats = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(`❌ Get Chats Error: ${error.message}`);
+    console.error(`Get Chats Error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Error fetching chats",
@@ -64,7 +65,7 @@ export const getMessages = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(`❌ Get Messages Error: ${error.message}`);
+    console.error(`Get Messages Error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Error fetching messages",
@@ -111,7 +112,38 @@ export const sendMessage = async (req, res) => {
       text: text.trim(),
     });
 
-    await message.populate("sender", "name image");
+    await message.populate("sender", "name username image");
+
+    // Create notification for the other user in the chat
+    const recipient = chat.users.find(
+      (userId) => userId.toString() !== currentUserId.toString()
+    );
+
+    if (recipient) {
+      try {
+        const io = req.app.get("io");
+        await createAndEmitNotification(
+          {
+            recipient: recipient,
+            sender: currentUserId,
+            type: "new_message",
+            title: "New Message",
+            message: chat.revealed
+              ? `${message.sender.name} sent you a message`
+              : `${message.sender.username} sent you a message`,
+            relatedChat: chatId,
+            relatedMessage: message._id,
+            actionUrl: `/chat/${chatId}`,
+          },
+          io
+        );
+      } catch (notifError) {
+        console.error(
+          `❌ Error creating message notification: ${notifError.message}`
+        );
+        // Don't fail the request if notification creation fails
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -121,7 +153,7 @@ export const sendMessage = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(`❌ Send Message Error: ${error.message}`);
+    console.error(`Send Message Error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Error sending message",
@@ -204,6 +236,40 @@ export const submitGuess = async (req, res) => {
         chat.revealed = true;
         await chat.save();
 
+        // Create identity revealed notifications for both users
+        try {
+          const io = req.app.get("io");
+          await createAndEmitNotification(
+            {
+              recipient: currentUserId,
+              sender: otherUser._id,
+              type: "identity_revealed",
+              title: "Identities Revealed! 🎉",
+              message: `You and ${otherUser.name} guessed correctly!`,
+              relatedChat: chatId,
+              actionUrl: `/chat/${chatId}`,
+            },
+            io
+          );
+
+          await createAndEmitNotification(
+            {
+              recipient: otherUser._id,
+              sender: currentUserId,
+              type: "identity_revealed",
+              title: "Identities Revealed! 🎉",
+              message: `You and ${user.name} guessed correctly!`,
+              relatedChat: chatId,
+              actionUrl: `/chat/${chatId}`,
+            },
+            io
+          );
+        } catch (notifError) {
+          console.error(
+            `Error creating reveal notifications: ${notifError.message}`
+          );
+        }
+
         return res.status(200).json({
           success: true,
           message: "Both guesses correct! Identities revealed! 🎉",
@@ -239,7 +305,7 @@ export const submitGuess = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(`❌ Submit Guess Error: ${error.message}`);
+    console.error(`Submit Guess Error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Error submitting guess",
@@ -274,7 +340,7 @@ export const getRevealStatus = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(`❌ Get Reveal Status Error: ${error.message}`);
+    console.error(`Get Reveal Status Error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Error getting reveal status",

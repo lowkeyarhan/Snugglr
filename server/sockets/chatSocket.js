@@ -1,6 +1,8 @@
 import Message from "../models/Message.js";
 import Chat from "../models/chat.js";
 import User from "../models/user.js";
+import { createNotification } from "../controllers/notificationController.js";
+import { emitNotification } from "./notificationSocket.js";
 
 const chatSocket = (io) => {
   io.on("connection", (socket) => {
@@ -34,7 +36,39 @@ const chatSocket = (io) => {
         });
 
         // Populate sender information
-        await message.populate("sender", "name image");
+        await message.populate("sender", "name username image");
+
+        // Get the chat to find the recipient
+        const chat = await Chat.findById(chatId);
+
+        // Create notification for the other user
+        const recipient = chat.users.find(
+          (userId) => userId.toString() !== senderId.toString()
+        );
+
+        if (recipient) {
+          try {
+            const notification = await createNotification({
+              recipient: recipient,
+              sender: senderId,
+              type: "new_message",
+              title: "New Message",
+              message: chat.revealed
+                ? `${message.sender.name} sent you a message`
+                : `${message.sender.username} sent you a message`,
+              relatedChat: chatId,
+              relatedMessage: message._id,
+              actionUrl: `/chat/${chatId}`,
+            });
+
+            // Emit notification via socket
+            emitNotification(io, recipient.toString(), notification);
+          } catch (notifError) {
+            console.error(
+              `Error creating message notification: ${notifError.message}`
+            );
+          }
+        }
 
         // Broadcast message to all users in this chat room
         io.to(chatId).emit("message_received", {
@@ -44,7 +78,7 @@ const chatSocket = (io) => {
 
         console.log(`💬 Message sent in chat ${chatId} by user ${senderId}`);
       } catch (error) {
-        console.error(`❌ Error sending message: ${error.message}`);
+        console.error(`Error sending message: ${error.message}`);
         socket.emit("error", { message: "Failed to send message" });
       }
     });
@@ -122,6 +156,37 @@ const chatSocket = (io) => {
             chat.revealed = true;
             await chat.save();
 
+            // Create identity revealed notifications for both users
+            try {
+              const notification1 = await createNotification({
+                recipient: userId,
+                sender: otherUser._id,
+                type: "identity_revealed",
+                title: "Identities Revealed! 🎉",
+                message: `You and ${otherUser.name} guessed correctly!`,
+                relatedChat: chatId,
+                actionUrl: `/chat/${chatId}`,
+              });
+
+              const notification2 = await createNotification({
+                recipient: otherUser._id,
+                sender: userId,
+                type: "identity_revealed",
+                title: "Identities Revealed! 🎉",
+                message: `You and ${user.name} guessed correctly!`,
+                relatedChat: chatId,
+                actionUrl: `/chat/${chatId}`,
+              });
+
+              // Emit notifications via socket
+              emitNotification(io, userId.toString(), notification1);
+              emitNotification(io, otherUser._id.toString(), notification2);
+            } catch (notifError) {
+              console.error(
+                `Error creating reveal notifications: ${notifError.message}`
+              );
+            }
+
             // Broadcast identity reveal to both users
             io.to(chatId).emit("reveal_identity", {
               chatId,
@@ -138,11 +203,11 @@ const chatSocket = (io) => {
               message: "At least one guess is incorrect. Try again!",
             });
 
-            console.log(`❌ Incorrect guesses in chat ${chatId}`);
+            console.log(`Incorrect guesses in chat ${chatId}`);
           }
         }
       } catch (error) {
-        console.error(`❌ Error submitting guess: ${error.message}`);
+        console.error(`Error submitting guess: ${error.message}`);
         socket.emit("error", { message: "Failed to submit guess" });
       }
     });
@@ -182,7 +247,7 @@ const chatSocket = (io) => {
      * User disconnects from socket
      */
     socket.on("disconnect", () => {
-      console.log(`❌ User disconnected: ${socket.id}`);
+      console.log(`User disconnected: ${socket.id}`);
     });
   });
 };

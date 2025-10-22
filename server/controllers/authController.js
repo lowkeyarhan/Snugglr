@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.js";
+import AllowedDomain from "../models/AllowedDomain.js";
 import generateToken from "../config/token.js";
 import { generateUniqueUsername } from "../utils/usernameGenerator.js";
 
@@ -25,6 +26,29 @@ export const register = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Please provide name, email, password, and community",
+      });
+    }
+
+    // Verify email domain is allowed
+    const emailDomain = email.split("@")[1]?.toLowerCase();
+    if (!emailDomain) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format",
+      });
+    }
+
+    const allowedDomain = await AllowedDomain.findOne({
+      domain: emailDomain,
+      isActive: true,
+    });
+
+    if (!allowedDomain) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Email domain is not authorized. Please use a valid college/institution email.",
+        emailDomain,
       });
     }
 

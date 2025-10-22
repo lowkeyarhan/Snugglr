@@ -1,5 +1,6 @@
 import Match from "../models/Match.js";
 import Chat from "../models/chat.js";
+import { createAndEmitNotification } from "../utils/notificationHelper.js";
 
 export const swipe = async (req, res) => {
   try {
@@ -49,6 +50,43 @@ export const swipe = async (req, res) => {
         users: [currentUserId, targetUserId],
         revealed: false,
       });
+
+      // Create match notifications for both users
+      try {
+        const io = req.app.get("io");
+        await createAndEmitNotification(
+          {
+            recipient: currentUserId,
+            sender: targetUserId,
+            type: "new_match",
+            title: "It's a Match! 🎉",
+            message: "You have a new match! Start chatting now.",
+            relatedMatch: existingMatch._id,
+            relatedChat: chat._id,
+            actionUrl: `/chat/${chat._id}`,
+          },
+          io
+        );
+
+        await createAndEmitNotification(
+          {
+            recipient: targetUserId,
+            sender: currentUserId,
+            type: "new_match",
+            title: "It's a Match! 🎉",
+            message: "You have a new match! Start chatting now.",
+            relatedMatch: existingMatch._id,
+            relatedChat: chat._id,
+            actionUrl: `/chat/${chat._id}`,
+          },
+          io
+        );
+      } catch (notifError) {
+        console.error(
+          `❌ Error creating match notifications: ${notifError.message}`
+        );
+        // Don't fail the request if notification creation fails
+      }
 
       return res.status(200).json({
         success: true,
