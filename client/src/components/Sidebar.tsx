@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import universityLogo from "../assets/university-logo.png";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -15,6 +16,7 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
     { icon: "home", label: "Home", path: "/home" },
     { icon: "chat_bubble", label: "Chats", path: "/chat" },
     { icon: "lightbulb", label: "Hints", path: "/hints" },
+    { icon: "add_box", label: "Create", path: "/create" },
     { icon: "settings", label: "Settings", path: "/settings" },
     { icon: "account_circle", label: "Profile", path: "/profile" },
   ];
@@ -106,6 +108,22 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
             </button>
           );
         })}
+
+        {/* University Logo Button */}
+        <button
+          className={`flex items-center ${
+            collapsed ? "justify-center px-3" : "justify-center px-3"
+          } py-3.5 text-base font-normal rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all duration-200 cursor-pointer group`}
+          title="University"
+        >
+          <div className="w-7 h-7 flex-shrink-0 group-hover:scale-105 transition-transform">
+            <img
+              src={universityLogo}
+              alt="University Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+        </button>
       </nav>
 
       {/* Notifications Pane */}

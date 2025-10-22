@@ -1,6 +1,7 @@
 import express from "express";
 import {
   updateProfile,
+  updateSettings,
   getPotentialMatches,
   getUserById,
 } from "../controllers/userController.js";
@@ -9,6 +10,7 @@ import authMiddleware from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 router.put("/profile", authMiddleware, updateProfile);
+router.put("/settings", authMiddleware, updateSettings);
 router.get("/potential-matches", authMiddleware, getPotentialMatches);
 router.get("/:userId", authMiddleware, getUserById);
 router.get("/community/:community", authMiddleware, async (req, res) => {

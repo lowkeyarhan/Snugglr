@@ -1,7 +1,111 @@
+// Import React hooks and API functions
 import { useState } from "react";
+import { loginUser, registerUser } from "../utils/api";
+
+type LoginMethod = "email" | "phone";
+
+interface FormData {
+  email: string;
+  phoneNumber: string;
+  password: string;
+}
+
+interface ErrorState {
+  message: string;
+  field?: string;
+}
 
 export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(true);
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>("email");
+
+  const [formData, setFormData] = useState<FormData>({
+    email: "",
+    phoneNumber: "",
+    password: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<ErrorState | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    if (error) setError(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Set loading state and clear any previous messages
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      let result;
+
+      if (isSignUp) {
+        result = await registerUser({
+          email: formData.email,
+          password: formData.password,
+        });
+      } else {
+        const loginPayload: any = {
+          password: formData.password,
+        };
+
+        if (loginMethod === "email") {
+          loginPayload.email = formData.email;
+        } else {
+          loginPayload.phoneNumber = formData.phoneNumber;
+        }
+
+        result = await loginUser(loginPayload);
+      }
+
+      if (result.data) {
+        localStorage.setItem("token", result.data.token);
+        localStorage.setItem("user", JSON.stringify(result.data.user));
+      }
+
+      setSuccess(true);
+
+      setTimeout(() => {
+        if (isSignUp) {
+          window.location.href = "/onboarding";
+        } else {
+          window.location.href = "/home";
+        }
+      }, 1500);
+    } catch (err: any) {
+      setError({
+        message: err.message || "An error occurred. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMethodSwitch = () => {
+    setIsSignUp(true);
+    setLoginMethod("email");
+
+    setFormData({
+      email: "",
+      phoneNumber: "",
+      password: "",
+    });
+
+    setError(null);
+    setSuccess(false);
+  };
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
@@ -233,7 +337,11 @@ export default function Auth() {
                 {/* Tabs */}
                 <div className="flex border-b border-gray-200 dark:border-gray-700">
                   <button
-                    onClick={() => setIsSignUp(true)}
+                    type="button"
+                    onClick={() => {
+                      setIsSignUp(true);
+                      handleMethodSwitch();
+                    }}
                     className={`flex-1 py-3 text-center font-bold transition-colors ${
                       isSignUp
                         ? "text-primary border-b-2 border-primary"
@@ -243,7 +351,11 @@ export default function Auth() {
                     Sign Up
                   </button>
                   <button
-                    onClick={() => setIsSignUp(false)}
+                    type="button"
+                    onClick={() => {
+                      setIsSignUp(false);
+                      setError(null);
+                    }}
                     className={`flex-1 py-3 text-center font-medium transition-colors ${
                       !isSignUp
                         ? "text-primary border-b-2 border-primary"
@@ -255,34 +367,114 @@ export default function Auth() {
                 </div>
 
                 {/* Form */}
-                <form
-                  className="space-y-6"
-                  onSubmit={(e) => e.preventDefault()}
-                >
+                <form className="space-y-6" onSubmit={handleSubmit}>
                   {isSignUp && (
                     <p className="text-sm text-center text-muted-light dark:text-muted-dark">
                       Sign up with your university email to get verified.
                     </p>
                   )}
 
-                  {/* Email Input */}
-                  <div className="relative">
-                    <label className="sr-only" htmlFor="college-email">
-                      College Email
-                    </label>
-                    <input
-                      autoComplete="email"
-                      className="form-input block w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-600 bg-background-light dark:bg-background-dark focus:z-10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary h-14 pl-4 pr-12 text-base text-text-light dark:text-text-dark placeholder-muted-light dark:placeholder-muted-dark"
-                      id="college-email"
-                      name="email"
-                      placeholder="your.name@college.edu"
-                      required
-                      type="email"
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-4 text-muted-light dark:text-muted-dark">
-                      <span className="material-symbols-outlined">school</span>
+                  {/* Login Method Toggle - Only for Sign In */}
+                  {!isSignUp && (
+                    <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoginMethod("email");
+                          setFormData((prev) => ({ ...prev, phoneNumber: "" }));
+                        }}
+                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                          loginMethod === "email"
+                            ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
+                            : "text-muted-light dark:text-muted-dark hover:text-primary"
+                        }`}
+                      >
+                        Email
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoginMethod("phone");
+                          setFormData((prev) => ({ ...prev, email: "" }));
+                        }}
+                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                          loginMethod === "phone"
+                            ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
+                            : "text-muted-light dark:text-muted-dark hover:text-primary"
+                        }`}
+                      >
+                        Phone Number
+                      </button>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Error Message */}
+                  {error && (
+                    <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                      <p className="text-sm text-red-600 dark:text-red-400 text-center">
+                        {error.message}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Success Message */}
+                  {success && (
+                    <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                      <p className="text-sm text-green-600 dark:text-green-400 text-center">
+                        {isSignUp
+                          ? "Registration successful!"
+                          : "Login successful!"}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Email Input - Show for Sign Up or when Email is selected for Sign In */}
+                  {(isSignUp || loginMethod === "email") && (
+                    <div className="relative">
+                      <label className="sr-only" htmlFor="college-email">
+                        College Email
+                      </label>
+                      <input
+                        autoComplete="email"
+                        className="form-input block w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-600 bg-background-light dark:bg-background-dark focus:z-10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary h-14 pl-4 pr-12 text-base text-text-light dark:text-text-dark placeholder-muted-light dark:placeholder-muted-dark"
+                        id="college-email"
+                        name="email"
+                        placeholder="your.name@college.edu"
+                        required
+                        type="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-4 text-muted-light dark:text-muted-dark">
+                        <span className="material-symbols-outlined">
+                          school
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Phone Number Input - Show only for Sign In when Phone is selected */}
+                  {!isSignUp && loginMethod === "phone" && (
+                    <div className="relative">
+                      <label className="sr-only" htmlFor="phone-number">
+                        Phone Number
+                      </label>
+                      <input
+                        autoComplete="tel"
+                        className="form-input block w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-600 bg-background-light dark:bg-background-dark focus:z-10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary h-14 pl-4 pr-12 text-base text-text-light dark:text-text-dark placeholder-muted-light dark:placeholder-muted-dark"
+                        id="phone-number"
+                        name="phoneNumber"
+                        placeholder="+1 (555) 123-4567"
+                        required
+                        type="tel"
+                        value={formData.phoneNumber}
+                        onChange={handleInputChange}
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-4 text-muted-light dark:text-muted-dark">
+                        <span className="material-symbols-outlined">phone</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Password Input */}
                   <div className="relative">
@@ -299,6 +491,8 @@ export default function Auth() {
                       }
                       required
                       type="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-4 text-muted-light dark:text-muted-dark">
                       <span className="material-symbols-outlined">lock</span>
@@ -323,10 +517,39 @@ export default function Auth() {
                   {/* Submit Button */}
                   <div>
                     <button
-                      className="group relative flex w-full justify-center rounded-lg border border-transparent bg-primary py-3 px-4 text-base font-bold text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background-light dark:focus:ring-offset-background-dark transition-all duration-300 ease-in-out shadow-lg hover:shadow-glow"
+                      className="group relative flex w-full justify-center items-center gap-2 rounded-lg border border-transparent bg-primary py-3 px-4 text-base font-bold text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background-light dark:focus:ring-offset-background-dark transition-all duration-300 ease-in-out shadow-lg hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed"
                       type="submit"
+                      disabled={loading}
                     >
-                      {isSignUp ? "Continue to Profile Setup" : "Sign In"}
+                      {loading ? (
+                        <>
+                          <svg
+                            className="animate-spin h-5 w-5 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          {isSignUp ? "Creating account..." : "Signing in..."}
+                        </>
+                      ) : (
+                        <>
+                          {isSignUp ? "Continue to Profile Setup" : "Sign In"}
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>

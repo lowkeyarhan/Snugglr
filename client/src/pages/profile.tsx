@@ -1,41 +1,82 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
-
-// Mock data - will be replaced with API call in the future
-const mockUserData = {
-  name: "Sophia",
-  university: "University of California",
-  dateOfBirth: "2003-05-15",
-  contactNumber: "+1 (555) 123-4567",
-  pronouns: "She/Her",
-  interests: "Art Club, Hiking, Philosophy of Mind",
-  memes: "Surprised Pikachu, Woman Yelling at a Cat",
-  music: "Phoebe Bridgers, Tame Impala, Frank Ocean",
-  movies: "Before Sunrise, Eternal Sunshine of the Spotless Mind",
-  favoriteSpot: "Main Library, 3rd Floor near the window",
-  fantasies: "Traveling to Japan, Opening my own art studio",
-  idealDate: "Sunset picnic at the beach with good conversation",
-  loveLanguage: "Quality Time",
-  quirkyFact: "I can solve a Rubik's cube in under 2 minutes",
-  hint: "You've probably seen me sketching in the campus courtyard",
-  profileImage:
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuBsp3vphLUGghOkvBEYWbre6Mr0vR35W3B9UO7-t5jHtIFz1tVyIVH0uugVFQH3vgMnJzYmT6YjklGUsY4Bi7GAe-1c-zPiWz7CRwrkpxWShIuAwD9hyhS7r3jnuAWXevlynxlahGDd4Wxd6JCYNoJ-ZBlDt9ua3sow5v5vvoZI6Imlr8Fn-7BQ-oEAg5-nKDrVK2qPnhF0mAyeh6IUwYyZSXalCfpWlc5Fo3RIX4GQ8FLDpuxTSXRcV9y3crjsFHhXMNRiW6lNLY_L",
-};
+import { getCurrentUser, updateUserProfile } from "../utils/api";
 
 export default function Profile() {
-  // Form state
-  const [formData, setFormData] = useState(mockUserData);
-  const [isLoading, setIsLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    name: "",
+    username: "",
+    community: "",
+    birthday: "",
+    phoneNumber: "",
+    gender: "",
+    pronouns: "",
+    interests: "",
+    memeVibe: "",
+    musicPreferences: "",
+    favoriteShows: "",
+    favoriteSpot: "",
+    quirkyFact: "",
+    loveLanguage: "",
+    fantasies: "",
+    idealDate: "",
+    hint: "",
+  });
 
-  // Simulate fetching data from backend
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
   useEffect(() => {
-    // TODO: Replace with actual API call
-    // fetchUserProfile().then(data => setFormData(data))
-    setTimeout(() => {
-      setFormData(mockUserData);
-      setIsLoading(false);
-    }, 500);
+    fetchUserProfile();
   }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Please login first");
+        return;
+      }
+
+      const result = await getCurrentUser(token);
+
+      if (result.data?.user) {
+        const user = result.data.user;
+        setFormData({
+          name: user.name || "",
+          username: user.username || "",
+          community: user.community || "",
+          birthday: user.birthday
+            ? new Date(user.birthday).toISOString().split("T")[0]
+            : "",
+          phoneNumber: user.phoneNumber || "",
+          gender: user.gender || "",
+          pronouns: user.pronouns || "",
+          hint: user.hint || "",
+          interests: Array.isArray(user.interests)
+            ? user.interests.join(", ")
+            : "",
+          memeVibe: user.memeVibe || "",
+          musicPreferences: user.musicPreferences || "",
+          favoriteShows: user.favoriteShows || "",
+          favoriteSpot: user.favoriteSpot || "",
+          quirkyFact: user.quirkyFact || "",
+          loveLanguage: user.loveLanguage || "",
+          fantasies: user.fantasies || "",
+          idealDate: user.idealDate || "",
+        });
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to load profile");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -47,17 +88,76 @@ export default function Profile() {
       ...prev,
       [name]: value,
     }));
+    if (error) setError(null);
+    if (success) setSuccess(false);
   };
 
-  const handleSave = () => {
-    // TODO: Implement save logic with API call
-    console.log("Saving profile data:", formData);
-    // updateUserProfile(formData).then(() => { show success message })
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      setError(null);
+      setSuccess(false);
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Please login first");
+        return;
+      }
+
+      // Prepare data for submission
+      const submitData: any = {};
+
+      if (formData.name) submitData.name = formData.name;
+      if (formData.community) submitData.community = formData.community;
+      if (formData.birthday) submitData.birthday = formData.birthday;
+      if (formData.phoneNumber) submitData.phoneNumber = formData.phoneNumber;
+      if (formData.gender) submitData.gender = formData.gender;
+      if (formData.pronouns) submitData.pronouns = formData.pronouns;
+      if (formData.memeVibe) submitData.memeVibe = formData.memeVibe;
+      if (formData.musicPreferences)
+        submitData.musicPreferences = formData.musicPreferences;
+      if (formData.favoriteShows)
+        submitData.favoriteShows = formData.favoriteShows;
+      if (formData.interests) {
+        const interestsArray = formData.interests
+          .split(",")
+          .map((interest) => interest.trim())
+          .filter((interest) => interest.length > 0);
+        submitData.interests = interestsArray;
+      }
+      if (formData.favoriteSpot)
+        submitData.favoriteSpot = formData.favoriteSpot;
+      if (formData.loveLanguage)
+        submitData.loveLanguage = formData.loveLanguage;
+      if (formData.quirkyFact) submitData.quirkyFact = formData.quirkyFact;
+      if (formData.fantasies) submitData.fantasies = formData.fantasies;
+      if (formData.idealDate) submitData.idealDate = formData.idealDate;
+      if (formData.hint) submitData.hint = formData.hint;
+
+      const result = await updateUserProfile(submitData, token);
+
+      if (result.data?.user) {
+        localStorage.setItem("user", JSON.stringify(result.data.user));
+      }
+
+      setIsSaving(false);
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+      }, 3000);
+    } catch (err: any) {
+      setIsSaving(false);
+      setError(err.message || "Failed to update profile");
+      setTimeout(() => {
+        setError(null);
+      }, 3000);
+    }
   };
 
-  const handleImageUpload = () => {
-    // TODO: Implement image upload
-    console.log("Upload profile picture");
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/auth";
   };
 
   if (isLoading) {
@@ -90,33 +190,24 @@ export default function Profile() {
             {/* Header */}
             <div className="text-center mb-10">
               <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                Edit Your Profile
+                Hi {formData.username && `${formData.username}`}
               </h1>
               <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
                 Keep your info fresh and find your perfect match!
               </p>
             </div>
 
-            {/* Profile Picture */}
+            {/* Profile Picture - Placeholder for now */}
             <div className="relative flex flex-col items-center gap-6 mb-10">
               <div className="relative group">
-                <div
-                  className="w-32 h-32 rounded-full bg-cover bg-center  shadow-lg"
-                  style={{
-                    backgroundImage: `url("${formData.profileImage}")`,
-                  }}
-                />
-                <button
-                  onClick={handleImageUpload}
-                  className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <span className="material-symbols-outlined text-white text-4xl">
-                    photo_camera
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center shadow-lg">
+                  <span className="material-symbols-outlined text-6xl text-primary/60">
+                    person
                   </span>
-                </button>
+                </div>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Click to change profile picture
+                Avatar upload coming soon!
               </p>
             </div>
 
@@ -142,7 +233,7 @@ export default function Profile() {
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
-                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       placeholder="Your Name"
                     />
                   </div>
@@ -152,10 +243,10 @@ export default function Profile() {
                     </label>
                     <input
                       type="text"
-                      name="university"
-                      value={formData.university}
+                      name="community"
+                      value={formData.community}
                       onChange={handleInputChange}
-                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       placeholder="Your University"
                     />
                   </div>
@@ -166,10 +257,10 @@ export default function Profile() {
                       </label>
                       <input
                         type="date"
-                        name="dateOfBirth"
-                        value={formData.dateOfBirth}
+                        name="birthday"
+                        value={formData.birthday}
                         onChange={handleInputChange}
-                        className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                        className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       />
                     </div>
                     <div>
@@ -180,7 +271,7 @@ export default function Profile() {
                         name="pronouns"
                         value={formData.pronouns}
                         onChange={handleInputChange}
-                        className="form-select w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                        className="form-select w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       >
                         <option value="">Select</option>
                         <option value="He/Him">He/Him</option>
@@ -204,10 +295,10 @@ export default function Profile() {
                     </label>
                     <input
                       type="tel"
-                      name="contactNumber"
-                      value={formData.contactNumber}
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
                       onChange={handleInputChange}
-                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       placeholder="+1 (555) 123-4567"
                     />
                   </div>
@@ -234,20 +325,23 @@ export default function Profile() {
                       name="interests"
                       value={formData.interests}
                       onChange={handleInputChange}
-                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       placeholder="e.g., Coding Club, Hiking, Psych 101"
                     />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Separate interests with commas
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">
-                      Favorite Memes
+                      Meme Vibe
                     </label>
                     <input
                       type="text"
-                      name="memes"
-                      value={formData.memes}
+                      name="memeVibe"
+                      value={formData.memeVibe}
                       onChange={handleInputChange}
-                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       placeholder="e.g., Distracted Boyfriend"
                     />
                   </div>
@@ -257,10 +351,10 @@ export default function Profile() {
                     </label>
                     <input
                       type="text"
-                      name="music"
-                      value={formData.music}
+                      name="musicPreferences"
+                      value={formData.musicPreferences}
                       onChange={handleInputChange}
-                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       placeholder="e.g., Taylor Swift, Drake"
                     />
                   </div>
@@ -270,10 +364,10 @@ export default function Profile() {
                     </label>
                     <input
                       type="text"
-                      name="movies"
-                      value={formData.movies}
+                      name="favoriteShows"
+                      value={formData.favoriteShows}
                       onChange={handleInputChange}
-                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       placeholder="e.g., The Matrix, Parasite"
                     />
                   </div>
@@ -300,7 +394,7 @@ export default function Profile() {
                       name="favoriteSpot"
                       value={formData.favoriteSpot}
                       onChange={handleInputChange}
-                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       placeholder="Where do you spend most of your day?"
                     />
                   </div>
@@ -313,7 +407,7 @@ export default function Profile() {
                       name="quirkyFact"
                       value={formData.quirkyFact}
                       onChange={handleInputChange}
-                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       placeholder="Something unique about you"
                     />
                   </div>
@@ -326,7 +420,7 @@ export default function Profile() {
                       name="loveLanguage"
                       value={formData.loveLanguage}
                       onChange={handleInputChange}
-                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                      className="w-full p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       placeholder="e.g., Quality Time, Physical Touch"
                     />
                   </div>
@@ -352,7 +446,7 @@ export default function Profile() {
                       name="fantasies"
                       value={formData.fantasies}
                       onChange={handleInputChange}
-                      className="w-full min-h-[80px] p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all resize-none outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                      className="w-full min-h-[80px] p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all resize-none outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       placeholder="What do you dream about?"
                     />
                   </div>
@@ -364,7 +458,7 @@ export default function Profile() {
                       name="idealDate"
                       value={formData.idealDate}
                       onChange={handleInputChange}
-                      className="w-full min-h-[80px] p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all resize-none outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                      className="w-full min-h-[80px] p-3 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all resize-none outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                       placeholder="Describe your perfect date"
                     />
                   </div>
@@ -373,7 +467,7 @@ export default function Profile() {
             </div>
 
             {/* The Mystery - Full Width */}
-            <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-6 mb-8">
+            <div className="bg-white dark:bg-card-dark rounded-2xl shadow-soft dark:shadow-glow/50 border border-slate-100 dark:border-primary/20 p-6 mb-8">
               <div className="flex items-center gap-2 mb-6">
                 <span className="material-symbols-outlined text-primary text-2xl">
                   psychology
@@ -390,24 +484,85 @@ export default function Profile() {
                   name="hint"
                   value={formData.hint}
                   onChange={handleInputChange}
-                  className="w-full min-h-[120px] p-4 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/70 placeholder-gray-400 dark:placeholder-gray-500 transition-all resize-none outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                  className="w-full min-h-[120px] p-4 rounded-lg border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/70 placeholder-gray-400 dark:placeholder-gray-500 transition-all resize-none outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 text-text-light dark:text-text-dark"
                   placeholder="Drop a subtle clue... Keep them guessing"
                 />
                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 italic">
-                  Tip: Make it intriguing but not too obvious. Let them earn
-                  the reveal!
+                  Tip: Make it intriguing but not too obvious. Let them earn the
+                  reveal!
                 </p>
               </div>
             </div>
 
-            {/* Save Button */}
-            <div className="flex justify-center pb-8">
+            {/* Action Buttons */}
+            <div className="flex justify-center gap-4 pb-8">
               <button
                 onClick={handleSave}
-                className="px-12 py-4 rounded-full bg-primary hover:bg-primary/90 text-white font-bold text-lg tracking-wide shadow-lg shadow-primary/40 dark:shadow-glow transition-all transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary flex items-center gap-3"
+                disabled={isSaving || success || !!error}
+                className={`px-12 py-4 rounded-full text-white font-bold text-lg tracking-wide shadow-lg transition-all transform focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center gap-3 disabled:cursor-not-allowed ${
+                  success
+                    ? "bg-green-500 shadow-green-500/40 scale-105"
+                    : error
+                    ? "bg-red-500 shadow-red-500/40 scale-105"
+                    : "bg-primary hover:bg-primary/90 shadow-primary/40 dark:shadow-glow  active:scale-95 focus:ring-primary disabled:opacity-50 disabled:transform-none"
+                }`}
               >
-                <span className="material-symbols-outlined text-2xl">save</span>
-                Save Changes
+                {isSaving ? (
+                  <>
+                    <svg
+                      className="animate-spin h-6 w-6 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : success ? (
+                  <>
+                    <span className="material-symbols-outlined text-2xl">
+                      check_circle
+                    </span>
+                    Saved
+                  </>
+                ) : error ? (
+                  <>
+                    <span className="material-symbols-outlined text-2xl">
+                      error
+                    </span>
+                    Error
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-2xl">
+                      save
+                    </span>
+                    Save Changes
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="px-12 py-4 rounded-full bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white font-bold text-lg tracking-wide shadow-lg shadow-red-600/40 transition-all transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-600 flex items-center gap-3"
+              >
+                <span className="material-symbols-outlined text-2xl">
+                  logout
+                </span>
+                Logout
               </button>
             </div>
           </div>

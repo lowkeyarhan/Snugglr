@@ -1,17 +1,80 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
+import { getCurrentUser, updateUserSettings } from "../utils/api";
 
 export default function Settings() {
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [showActiveStatus, setShowActiveStatus] = useState(true);
   const [hideDP, setHideDP] = useState(false);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // Mock user data
-  const userData = {
-    email: "sophia.miller@example.com",
-    profileImage:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCcLAvhfEuBF6N3MMdTS5C31TMvDCxk-CEKf6ypBt9g_9vH0ZgogbsKBEdSb0ZJ5Sc5K9fgfFxd984lmsAO_Amkapa7GcShgt00rH8cqJKb2g7r6WuFcyou-BBpvj2uCpKF0qKhUFwHufP3iyjObF4hcdF4Op_rd-XyLXqoa4CMa-AaB2Ld7i-Pd88jc_GAoAG0Ff6041Fmo3py6bumI7x1fxVVcJ_3rP9f9f1ZJ770tWa1dfOti-Lw-EU2I358H7vjQbuL6YYgl6oa",
+  // Load current settings from backend
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        const res = await getCurrentUser(token);
+        const user = res.data?.user as any;
+        if (user) {
+          setUserEmail(user.email || "");
+          setPushNotifications(!!user?.settings?.pushNotifications);
+          setEmailNotifications(!!user?.settings?.emailNotifications);
+          setShowActiveStatus(!!user?.privacy?.showActiveStatus);
+          setHideDP(!!user?.privacy?.hideDisplayPicture);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Optimistically update localStorage user object
+  const updateUserInStorage = (path: string[], value: any) => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (!userStr) return;
+      const user = JSON.parse(userStr);
+      let cursor = user;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        cursor[key] = cursor[key] ?? {};
+        cursor = cursor[key];
+      }
+      cursor[path[path.length - 1]] = value;
+      localStorage.setItem("user", JSON.stringify(user));
+    } catch {
+      // ignore
+    }
+  };
+
+  // Generic toggle handler
+  const handleToggle = async (
+    key:
+      | "pushNotifications"
+      | "emailNotifications"
+      | "showActiveStatus"
+      | "hideDisplayPicture",
+    checked: boolean,
+    setter: (v: boolean) => void,
+    storagePath: string[]
+  ) => {
+    const prev = !checked;
+    setter(checked);
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      await updateUserSettings({ [key]: checked } as any, token);
+      updateUserInStorage(storagePath, checked);
+    } catch (e) {
+      // revert on error
+      setter(prev);
+    }
   };
 
   const handleLogout = () => {
@@ -56,7 +119,7 @@ export default function Settings() {
                               Email
                             </p>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {userData.email}
+                              {userEmail || ""}
                             </p>
                           </div>
                         </div>
@@ -113,8 +176,14 @@ export default function Settings() {
                           <input
                             type="checkbox"
                             checked={showActiveStatus}
+                            disabled={loading}
                             onChange={(e) =>
-                              setShowActiveStatus(e.target.checked)
+                              handleToggle(
+                                "showActiveStatus",
+                                e.target.checked,
+                                setShowActiveStatus,
+                                ["privacy", "showActiveStatus"]
+                              )
                             }
                             className="sr-only peer"
                           />
@@ -136,7 +205,15 @@ export default function Settings() {
                           <input
                             type="checkbox"
                             checked={hideDP}
-                            onChange={(e) => setHideDP(e.target.checked)}
+                            disabled={loading}
+                            onChange={(e) =>
+                              handleToggle(
+                                "hideDisplayPicture",
+                                e.target.checked,
+                                setHideDP,
+                                ["privacy", "hideDisplayPicture"]
+                              )
+                            }
                             className="sr-only peer"
                           />
                           <div className="w-12 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
@@ -191,8 +268,14 @@ export default function Settings() {
                           <input
                             type="checkbox"
                             checked={pushNotifications}
+                            disabled={loading}
                             onChange={(e) =>
-                              setPushNotifications(e.target.checked)
+                              handleToggle(
+                                "pushNotifications",
+                                e.target.checked,
+                                setPushNotifications,
+                                ["settings", "pushNotifications"]
+                              )
                             }
                             className="sr-only peer"
                           />
@@ -214,8 +297,14 @@ export default function Settings() {
                           <input
                             type="checkbox"
                             checked={emailNotifications}
+                            disabled={loading}
                             onChange={(e) =>
-                              setEmailNotifications(e.target.checked)
+                              handleToggle(
+                                "emailNotifications",
+                                e.target.checked,
+                                setEmailNotifications,
+                                ["settings", "emailNotifications"]
+                              )
                             }
                             className="sr-only peer"
                           />

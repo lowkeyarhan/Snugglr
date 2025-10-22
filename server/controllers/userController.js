@@ -1,4 +1,4 @@
-import User from "../models/user.js";
+import User from "../models/User.js";
 import Match from "../models/Match.js";
 
 export const updateProfile = async (req, res) => {
@@ -9,12 +9,17 @@ export const updateProfile = async (req, res) => {
       birthday,
       gender,
       pronouns,
-      funBio,
       interests,
       musicPreferences,
       favoriteShows,
       memeVibe,
       community,
+      favoriteSpot,
+      loveLanguage,
+      quirkyFact,
+      fantasies,
+      idealDate,
+      hint,
     } = req.body;
 
     const userId = req.user._id;
@@ -24,7 +29,6 @@ export const updateProfile = async (req, res) => {
     if (phoneNumber) updateData.phoneNumber = phoneNumber;
     if (birthday) {
       updateData.birthday = birthday;
-      // Calculate age from birthday
       const birthDate = new Date(birthday);
       const today = new Date();
       let age = today.getFullYear() - birthDate.getFullYear();
@@ -39,12 +43,33 @@ export const updateProfile = async (req, res) => {
     }
     if (gender) updateData.gender = gender;
     if (pronouns) updateData.pronouns = pronouns;
-    if (funBio) updateData.funBio = funBio;
-    if (interests) updateData.interests = interests;
+
+    // Handle interests - can be string (JSON) or array
+    if (interests) {
+      try {
+        updateData.interests =
+          typeof interests === "string" ? JSON.parse(interests) : interests;
+      } catch (e) {
+        updateData.interests = interests;
+      }
+    }
+
     if (musicPreferences) updateData.musicPreferences = musicPreferences;
     if (favoriteShows) updateData.favoriteShows = favoriteShows;
     if (memeVibe) updateData.memeVibe = memeVibe;
     if (community) updateData.community = community;
+
+    // Campus Life fields
+    if (favoriteSpot) updateData.favoriteSpot = favoriteSpot;
+    if (loveLanguage) updateData.loveLanguage = loveLanguage;
+    if (quirkyFact) updateData.quirkyFact = quirkyFact;
+
+    // Dreams & Desires fields
+    if (fantasies) updateData.fantasies = fantasies;
+    if (idealDate) updateData.idealDate = idealDate;
+
+    // The Mystery field
+    if (hint) updateData.hint = hint;
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
@@ -63,6 +88,46 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error updating profile",
+      error: error.message,
+    });
+  }
+};
+
+export const updateSettings = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const {
+      pushNotifications,
+      emailNotifications,
+      showActiveStatus,
+      hideDisplayPicture,
+    } = req.body;
+
+    const update = {};
+    if (pushNotifications !== undefined)
+      update["settings.pushNotifications"] = pushNotifications;
+    if (emailNotifications !== undefined)
+      update["settings.emailNotifications"] = emailNotifications;
+    if (showActiveStatus !== undefined)
+      update["privacy.showActiveStatus"] = showActiveStatus;
+    if (hideDisplayPicture !== undefined)
+      update["privacy.hideDisplayPicture"] = hideDisplayPicture;
+
+    const updatedUser = await User.findByIdAndUpdate(userId, update, {
+      new: true,
+      runValidators: true,
+    }).select("-password");
+
+    res.status(200).json({
+      success: true,
+      message: "Settings updated successfully",
+      data: { user: updatedUser },
+    });
+  } catch (error) {
+    console.error(`❌ Update Settings Error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      message: "Error updating settings",
       error: error.message,
     });
   }

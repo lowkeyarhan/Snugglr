@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import Sidebar from "../components/Sidebar";
+import { getPotentialMatches, swipeUser } from "../utils/api";
 
-// Mock Data
-const mockStories = [
+// Dummy Stories (no functionality)
+const dummyStories = [
   {
     id: 1,
     image:
@@ -33,185 +34,173 @@ const mockStories = [
   },
 ];
 
-const mockMatches = [
-  {
-    id: 123,
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=800&fit=crop",
-    name: "Anonymous Match #123",
-    interests: ["Music", "Hiking", "Art"],
-    topArtists: ["Joji", "The Strokes", "Tame Impala"],
-    topMovies: ["Interstellar", "La La Land", "About Time"],
-    memeLine: "Ahh shit Here we go again.",
-    unlockableDetails: [
-      {
-        id: 1,
-        title: "Favorite Campus Coffee Shop",
-        description: "Unlocked after 3 swipes right! (1/3)",
-        isUnlocked: true,
-      },
-      {
-        id: 2,
-        title: "Major & Graduation Year",
-        description: "Unlock: 5 more interactions needed",
-        isUnlocked: false,
-      },
-    ],
-  },
-  {
-    id: 456,
-    image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=800&fit=crop",
-    name: "Anonymous Match #456",
-    interests: ["Photography", "Books", "Yoga"],
-    topArtists: ["Ed Sheeran", "Norah Jones", "The Beatles"],
-    topMovies: ["Lady Bird", "Past Lives", "Moonlight"],
-    memeLine: "Why are you running?",
-    unlockableDetails: [
-      {
-        id: 1,
-        title: "Favorite Study Spot",
-        description: "Unlocked after 3 swipes right! (0/3)",
-        isUnlocked: false,
-      },
-      {
-        id: 2,
-        title: "Weekend Activities",
-        description: "Unlock: 5 more interactions needed",
-        isUnlocked: false,
-      },
-    ],
-  },
-  {
-    id: 789,
-    image:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=800&fit=crop",
-    name: "Anonymous Match #789",
-    interests: ["Gaming", "Coding", "Basketball"],
-    topArtists: ["Porter Robinson", "Daft Punk", "HANS ZIMMER"],
-    topMovies: ["Spider‑Verse", "Your Name", "The Dark Knight"],
-    memeLine: "I can fix her (I cannot).",
-    unlockableDetails: [
-      {
-        id: 1,
-        title: "Favorite Video Game",
-        description: "Unlocked after 3 swipes right! (2/3)",
-        isUnlocked: true,
-      },
-      {
-        id: 2,
-        title: "Tech Stack Preferences",
-        description: "Unlock: 5 more interactions needed",
-        isUnlocked: false,
-      },
-    ],
-  },
-  {
-    id: 234,
-    image:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&h=800&fit=crop",
-    name: "Anonymous Match #234",
-    interests: ["Cooking", "Travel", "Dancing"],
-    topArtists: ["Bad Bunny", "Rema", "Rosalía"],
-    topMovies: ["Eat Pray Love", "The Secret Life of Walter Mitty", "Chef"],
-    memeLine: "Main character energy.",
-    unlockableDetails: [
-      {
-        id: 1,
-        title: "Dream Travel Destination",
-        description: "Unlocked after 3 swipes right! (3/3)",
-        isUnlocked: true,
-      },
-      {
-        id: 2,
-        title: "Favorite Cuisine",
-        description: "Unlock: 5 more interactions needed",
-        isUnlocked: false,
-      },
-    ],
-  },
-];
-
-const mockConfessions = [
-  {
-    id: 1,
-    user: {
-      id: 456,
-      name: "Anonymous #456",
-      avatar:
-        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
-    },
-    content:
-      "Saw you in the library today, couldn't stop thinking about your smile.",
-    timeAgo: "2 hours ago",
-    likes: 12,
-    comments: 3,
-    isLiked: false,
-  },
-  {
-    id: 2,
-    user: {
-      id: 789,
-      name: "Anonymous #789",
-      avatar:
-        "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=400&h=400&fit=crop",
-    },
-    content:
-      "To the person who returned my lost wallet, you're a real one. Let me buy you a coffee.",
-    timeAgo: "5 hours ago",
-    likes: 28,
-    comments: 7,
-    isLiked: true,
-  },
-  {
-    id: 3,
-    user: {
-      id: 234,
-      name: "Anonymous #234",
-      avatar:
-        "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=400&fit=crop",
-    },
-    content:
-      "Anyone else struggling with calculus? Maybe we could study together sometime?",
-    timeAgo: "8 hours ago",
-    likes: 15,
-    comments: 9,
-    isLiked: false,
-  },
-  {
-    id: 4,
-    user: {
-      id: 567,
-      name: "Anonymous #567",
-      avatar:
-        "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop",
-    },
-    content:
-      "Your laugh in the cafeteria yesterday made my whole week brighter.",
-    timeAgo: "1 day ago",
-    likes: 34,
-    comments: 5,
-    isLiked: false,
-  },
-];
-
 export default function Home() {
-  const [confessions, setConfessions] = useState(mockConfessions);
+  const [matches, setMatches] = useState<any[]>([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [swiping, setSwiping] = useState(false);
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
-  const handleLike = (matchId: number) => {
-    console.log("Liked match:", matchId);
-    // In real app, this would send data to backend and fetch next match
-    // Optionally move to next match
-    // setCurrentMatchIndex((prev) => (prev + 1) % mockMatches.length);
+  // Mock confessions data
+  const [confessions, setConfessions] = useState([
+    {
+      id: 1,
+      user: {
+        name: "Anonymous #456",
+        avatar:
+          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face",
+      },
+      timeAgo: "2 hours ago",
+      content:
+        "Saw you in the library today, couldn't stop thinking about your smile.",
+      likes: 12,
+      comments: 3,
+      isLiked: false,
+    },
+    {
+      id: 2,
+      user: {
+        name: "Anonymous #789",
+        avatar:
+          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
+      },
+      timeAgo: "5 hours ago",
+      content:
+        "To the person who returned my lost wallet, you're a real one. Let me buy you a coffee.",
+      likes: 28,
+      comments: 7,
+      isLiked: false,
+    },
+    {
+      id: 3,
+      user: {
+        name: "Anonymous #567",
+        avatar:
+          "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=40&h=40&fit=crop&crop=face",
+      },
+      timeAgo: "1 day ago",
+      content:
+        "Your laugh in the cafeteria yesterday made my whole week brighter.",
+      likes: 34,
+      comments: 5,
+      isLiked: false,
+    },
+    {
+      id: 4,
+      user: {
+        name: "Anonymous #234",
+        avatar:
+          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=40&h=40&fit=crop&crop=face",
+      },
+      timeAgo: "8 hours ago",
+      content:
+        "Anyone else struggling with calculus? Maybe we could study together sometime?",
+      likes: 15,
+      comments: 9,
+      isLiked: false,
+    },
+  ]);
+
+  const toggleConfessionLike = (confessionId: number) => {
+    setConfessions((prev) =>
+      prev.map((confession) =>
+        confession.id === confessionId
+          ? {
+              ...confession,
+              isLiked: !confession.isLiked,
+              likes: confession.isLiked
+                ? confession.likes - 1
+                : confession.likes + 1,
+            }
+          : confession
+      )
+    );
   };
 
-  const handlePass = (matchId: number) => {
-    console.log("Passed match:", matchId);
-    // In real app, this would send data to backend and fetch next match
-    // Optionally move to next match
-    // setCurrentMatchIndex((prev) => (prev + 1) % mockMatches.length);
+  // Fetch potential matches on component mount
+  useEffect(() => {
+    fetchMatches();
+  }, []);
+
+  const fetchMatches = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Please login first");
+        return;
+      }
+
+      const result = await getPotentialMatches(token);
+
+      if (result.data?.users && result.data.users.length > 0) {
+        setMatches(result.data.users);
+      } else {
+        setMatches([]);
+        setError("No more matches available at the moment!");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch matches");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLike = async (userId: string) => {
+    if (swiping) return;
+
+    try {
+      setSwiping(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Please login first");
+        return;
+      }
+
+      await swipeUser(userId, "like", token);
+
+      // Remove the swiped user from the list
+      setMatches((prev) => prev.filter((match) => match._id !== userId));
+
+      // Reset index if needed
+      if (currentMatchIndex >= matches.length - 1) {
+        setCurrentMatchIndex(Math.max(0, matches.length - 2));
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to swipe");
+    } finally {
+      setSwiping(false);
+    }
+  };
+
+  const handlePass = async (userId: string) => {
+    if (swiping) return;
+
+    try {
+      setSwiping(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Please login first");
+        return;
+      }
+
+      await swipeUser(userId, "pass", token);
+
+      // Remove the swiped user from the list
+      setMatches((prev) => prev.filter((match) => match._id !== userId));
+
+      // Reset index if needed
+      if (currentMatchIndex >= matches.length - 1) {
+        setCurrentMatchIndex(Math.max(0, matches.length - 2));
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to swipe");
+    } finally {
+      setSwiping(false);
+    }
   };
 
   const scrollToMatch = (index: number) => {
@@ -233,23 +222,6 @@ export default function Home() {
     }
   }, [currentMatchIndex]);
 
-  const toggleConfessionLike = (confessionId: number) => {
-    setConfessions((prev) =>
-      prev.map((confession) => {
-        if (confession.id === confessionId) {
-          return {
-            ...confession,
-            isLiked: !confession.isLiked,
-            likes: confession.isLiked
-              ? confession.likes - 1
-              : confession.likes + 1,
-          };
-        }
-        return confession;
-      })
-    );
-  };
-
   return (
     <div className="relative flex h-screen w-full overflow-hidden">
       <div className="flex h-full w-full">
@@ -257,228 +229,298 @@ export default function Home() {
         <Sidebar />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto h-screen">
+        <main className="flex-1 overflow-y-auto h-screen bg-background-light dark:bg-background-dark">
           <div className="px-6 py-8 w-full">
             <div className="flex flex-col gap-8">
-              {/* Stories Section */}
+              {/* Stories Section - DUMMY (No Functionality) */}
               <div className="flex w-full overflow-x-auto pb-4 scrollbar-hide">
                 <div className="flex flex-row items-start justify-start gap-5 py-4">
-                  {mockStories.map((story) => (
+                  {dummyStories.map((story) => (
                     <div
                       key={story.id}
-                      className="flex flex-col items-center gap-2 w-20 text-center cursor-pointer"
+                      className="flex flex-col items-center gap-2 w-20 text-center cursor-not-allowed opacity-70"
+                      title="Coming soon!"
                     >
                       <div
-                        className={`w-16 h-16 rounded-full bg-center bg-no-repeat bg-cover transition-transform hover:scale-105 ${
+                        className={`w-16 h-16 rounded-full bg-center bg-no-repeat bg-cover ${
                           story.hasNotification
                             ? "ring-2 ring-offset-2 ring-offset-background-light dark:ring-offset-background-dark ring-pink-500"
                             : ""
                         }`}
                         style={{ backgroundImage: `url(${story.image})` }}
                       />
-                      <p className="text-sm font-medium">{story.label}</p>
+                      <p className="text-sm font-medium text-muted-light dark:text-muted-dark">
+                        {story.label}
+                      </p>
                     </div>
                   ))}
-                  <div className="flex flex-col items-center gap-2 w-20 text-center cursor-pointer">
-                    <div className="w-16 h-16 rounded-full bg-center bg-no-repeat bg-cover flex items-center justify-center bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
+                  <div className="flex flex-col items-center gap-2 w-20 text-center cursor-not-allowed opacity-70">
+                    <div className="w-16 h-16 rounded-full bg-center bg-no-repeat bg-cover flex items-center justify-center bg-slate-200 dark:bg-slate-800">
                       <span className="material-symbols-outlined text-3xl text-slate-500">
                         add
                       </span>
                     </div>
-                    <p className="text-sm font-medium">New Post</p>
+                    <p className="text-sm font-medium text-muted-light dark:text-muted-dark">
+                      New Post
+                    </p>
                   </div>
                 </div>
               </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                  <p className="text-sm text-red-600 dark:text-red-400 text-center">
+                    {error}
+                  </p>
+                </div>
+              )}
+
+              {/* Loading State */}
+              {loading && (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <svg
+                    className="animate-spin h-12 w-12 text-primary"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <p className="mt-4 text-lg font-medium text-muted-light dark:text-muted-dark">
+                    Finding your matches...
+                  </p>
+                </div>
+              )}
+
+              {/* No Matches State */}
+              {!loading && matches.length === 0 && !error && (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <span className="material-symbols-outlined text-6xl text-muted-light dark:text-muted-dark mb-4">
+                    sentiment_content
+                  </span>
+                  <h3 className="text-2xl font-bold mb-2">No more matches!</h3>
+                  <p className="text-muted-light dark:text-muted-dark text-center max-w-md">
+                    You've seen everyone in your community. Check back later for
+                    new people!
+                  </p>
+                  <button
+                    onClick={fetchMatches}
+                    className="mt-6 px-6 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary-dark transition-colors"
+                  >
+                    Refresh
+                  </button>
+                </div>
+              )}
 
               {/* Match Cards Carousel */}
-              <div className="relative w-full">
-                {/* Scrollable Match Cards Container */}
-                <div className="relative overflow-hidden py-4">
-                  <div
-                    ref={carouselRef}
-                    className="flex gap-6 overflow-x-auto snap-x snap-mandatory px-4 scrollbar-hide"
-                  >
-                    {mockMatches.map((match, index) => {
-                      const isFocused = index === currentMatchIndex;
-                      return (
-                        <div
-                          key={match.id}
-                          className={`flex-shrink-0 w-full max-w-xl snap-center transition-all duration-300 ${
-                            isFocused
-                              ? "scale-100 opacity-100"
-                              : "scale-90 opacity-40 pointer-events-none"
-                          }`}
-                          onClick={() => !isFocused && scrollToMatch(index)}
-                        >
-                          <div className="flex flex-col items-center justify-center gap-6 bg-white rounded-lg p-6 shadow-lg">
-                            <div className="w-full max-w-40 aspect-square flex items-center justify-center">
-                              <div
-                                className="w-full h-full rounded-full overflow-hidden shadow-2xl relative"
-                                aria-label="Profile picture (blurred for privacy)"
-                              >
-                                <img
-                                  src={match.image}
-                                  alt="Profile"
-                                  className="w-full h-full object-cover rounded-full"
-                                  style={{
-                                    maskImage:
-                                      "radial-gradient(circle at center, white 85%, transparent 100%)",
-                                    filter: "blur(8px)",
-                                  }}
-                                />
-                                {/* Optional: Faux sharp border */}
-                                <div className="absolute inset-0 rounded-full ring ring-white/80 dark:ring-slate-800 pointer-events-none" />
-                              </div>
-                            </div>
-                            <div className="text-center">
-                              <h3 className="text-2xl font-bold">
-                                {match.name}
-                              </h3>
-                              <div className="flex gap-2 justify-center mt-3 flex-wrap">
-                                {match.interests.map((interest, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="bg-primary/10 dark:bg-primary/20 text-primary text-sm font-semibold px-3 py-1 rounded-full"
-                                  >
-                                    {interest}
-                                  </span>
-                                ))}
-                              </div>
-                              {/* Taste Quick Facts */}
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 text-left max-w-md mx-auto">
-                                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3">
-                                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm font-semibold">
-                                    <span className="material-symbols-outlined text-base">
-                                      music_note
-                                    </span>
-                                    Fav Artists
-                                  </div>
-                                  <ul className="mt-1 text-sm text-slate-700 dark:text-slate-300 list-disc list-inside space-y-0.5">
-                                    {match.topArtists.map(
-                                      (artist: string, i: number) => (
-                                        <li key={i}>{artist}</li>
-                                      )
-                                    )}
-                                  </ul>
-                                </div>
-                                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3">
-                                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm font-semibold">
-                                    <span className="material-symbols-outlined text-base">
-                                      movie
-                                    </span>
-                                    Fav Movies
-                                  </div>
-                                  <ul className="mt-1 text-sm text-slate-700 dark:text-slate-300 list-disc list-inside space-y-0.5">
-                                    {match.topMovies.map(
-                                      (movie: string, i: number) => (
-                                        <li key={i}>{movie}</li>
-                                      )
-                                    )}
-                                  </ul>
-                                </div>
-                                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3">
-                                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm font-semibold">
-                                    <span className="material-symbols-outlined text-base">
-                                      mood
-                                    </span>
-                                    Meme Line
-                                  </div>
-                                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300 italic break-words">
-                                    “{match.memeLine}”
-                                  </p>
+              {!loading && matches.length > 0 && (
+                <div className="relative w-full">
+                  {/* Scrollable Match Cards Container */}
+                  <div className="relative overflow-hidden py-4">
+                    <div
+                      ref={carouselRef}
+                      className="flex gap-6 overflow-x-auto snap-x snap-mandatory px-4 scrollbar-hide"
+                    >
+                      {matches.map((match, index) => {
+                        const isFocused = index === currentMatchIndex;
+                        return (
+                          <div
+                            key={match._id}
+                            className={`flex-shrink-0 w-full max-w-xl snap-center transition-all duration-300 ${
+                              isFocused
+                                ? "scale-100 opacity-100"
+                                : "scale-90 opacity-40 pointer-events-none"
+                            }`}
+                            onClick={() => !isFocused && scrollToMatch(index)}
+                          >
+                            <div className="flex flex-col items-center justify-center gap-6 bg-white dark:bg-card-dark rounded-lg p-6 shadow-lg">
+                              {/* Profile Picture (Blurred) */}
+                              <div className="w-full max-w-40 aspect-square flex items-center justify-center">
+                                <div
+                                  className="w-full h-full rounded-full overflow-hidden shadow-2xl relative bg-gradient-to-br from-primary/20 to-secondary/20"
+                                  aria-label="Profile picture (blurred for privacy)"
+                                >
+                                  {match.image &&
+                                  match.image !== "default-avatar.png" ? (
+                                    <>
+                                      <img
+                                        src={`http://localhost:8081/uploads/avatars/${match.image}`}
+                                        alt="Profile"
+                                        className="w-full h-full object-cover rounded-full"
+                                        style={{
+                                          maskImage:
+                                            "radial-gradient(circle at center, white 85%, transparent 100%)",
+                                          filter: "blur(8px)",
+                                        }}
+                                      />
+                                      <div className="absolute inset-0 rounded-full ring ring-white/80 dark:ring-slate-800 pointer-events-none" />
+                                    </>
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <span className="material-symbols-outlined text-6xl text-primary/40">
+                                        person
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
-                            </div>
 
-                            {/* Unlockable Details */}
-                            <div className="w-full max-w-md flex flex-col gap-4">
-                              <div className="flex flex-col gap-3 mt-4">
-                                <h4 className="text-lg font-bold text-center">
-                                  Unlockable Details
-                                </h4>
-                                {match.unlockableDetails.map((detail) => (
-                                  <div
-                                    key={detail.id}
-                                    className={`flex items-center gap-3 bg-slate-100 dark:bg-slate-800 p-3 rounded-lg ${
-                                      !detail.isUnlocked ? "opacity-60" : ""
-                                    }`}
-                                  >
-                                    <span
-                                      className={`material-symbols-outlined text-2xl ${
-                                        detail.isUnlocked
-                                          ? "text-purple-500"
-                                          : "text-slate-400"
-                                      }`}
-                                    >
-                                      {detail.isUnlocked ? "lock_open" : "lock"}
-                                    </span>
-                                    <div>
-                                      <p className="font-semibold">
-                                        {detail.title}
-                                      </p>
-                                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                                        {detail.description}
+                              {/* User Info */}
+                              <div className="text-center">
+                                <h3 className="text-2xl font-bold">
+                                  {match.username || "Anonymous"}
+                                </h3>
+                                {match.age && (
+                                  <p className="text-muted-light dark:text-muted-dark">
+                                    {match.age} years old
+                                  </p>
+                                )}
+
+                                {/* Interests */}
+                                {match.interests &&
+                                  match.interests.length > 0 && (
+                                    <div className="flex gap-2 justify-center mt-3 flex-wrap">
+                                      {match.interests
+                                        .slice(0, 5)
+                                        .map(
+                                          (interest: string, idx: number) => (
+                                            <span
+                                              key={idx}
+                                              className="bg-primary/10 dark:bg-primary/20 text-primary text-sm font-semibold px-3 py-1 rounded-full"
+                                            >
+                                              {interest}
+                                            </span>
+                                          )
+                                        )}
+                                    </div>
+                                  )}
+
+                                {/* Taste Quick Facts */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 text-left max-w-md mx-auto">
+                                  {/* Music */}
+                                  {match.musicPreferences && (
+                                    <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3">
+                                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm font-semibold">
+                                        <span className="material-symbols-outlined text-base">
+                                          music_note
+                                        </span>
+                                        Music
+                                      </div>
+                                      <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                                        {match.musicPreferences}
                                       </p>
                                     </div>
+                                  )}
+
+                                  {/* Shows */}
+                                  {match.favoriteShows && (
+                                    <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3">
+                                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm font-semibold">
+                                        <span className="material-symbols-outlined text-base">
+                                          movie
+                                        </span>
+                                        Shows
+                                      </div>
+                                      <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                                        {match.favoriteShows}
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* Meme Vibe */}
+                                  {match.memeVibe && (
+                                    <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3">
+                                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm font-semibold">
+                                        <span className="material-symbols-outlined text-base">
+                                          mood
+                                        </span>
+                                        Vibe
+                                      </div>
+                                      <p className="mt-1 text-sm text-slate-700 dark:text-slate-300 italic break-words">
+                                        "{match.memeVibe}"
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Hint */}
+                                {match.hint && (
+                                  <div className="mt-4 p-3 bg-primary/5 dark:bg-primary/10 rounded-lg">
+                                    <p className="text-sm text-slate-700 dark:text-slate-300 italic">
+                                      "{match.hint}"
+                                    </p>
                                   </div>
-                                ))}
+                                )}
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="flex items-center gap-4 w-full max-w-md">
+                                <button
+                                  onClick={() => handlePass(match._id)}
+                                  disabled={!isFocused || swiping}
+                                  className="flex-1 h-16 rounded-lg bg-slate-200/70 dark:bg-slate-800/70 font-bold text-slate-600 dark:text-slate-300 text-lg flex items-center justify-center gap-2 hover:bg-slate-300/70 dark:hover:bg-slate-700/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <span className="material-symbols-outlined">
+                                    close
+                                  </span>
+                                  Meh
+                                </button>
+                                <button
+                                  onClick={() => handleLike(match._id)}
+                                  disabled={!isFocused || swiping}
+                                  className="flex-1 h-16 rounded-lg bg-pink-600 hover:bg-pink-500 text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-pink-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <span className="material-symbols-outlined">
+                                    favorite
+                                  </span>
+                                  Might Work
+                                </button>
                               </div>
                             </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex items-center gap-4 w-full max-w-md">
-                              <button
-                                onClick={() => handlePass(match.id)}
-                                disabled={!isFocused}
-                                className="flex-1 h-16 rounded-lg bg-slate-200/70 dark:bg-slate-800/70 font-bold text-slate-600 dark:text-slate-300 text-lg flex items-center justify-center gap-2 hover:bg-slate-300/70 dark:hover:bg-slate-700/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <span className="material-symbols-outlined">
-                                  close
-                                </span>{" "}
-                                Meh
-                              </button>
-                              <button
-                                onClick={() => handleLike(match.id)}
-                                disabled={!isFocused}
-                                className="flex-1 h-16 rounded-lg bg-pink-600 hover:bg-pink-500 text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-pink-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <span className="material-symbols-outlined">
-                                  favorite
-                                </span>{" "}
-                                Might Work
-                              </button>
-                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
 
-                {/* Navigation Arrows */}
-                {currentMatchIndex > 0 && (
-                  <button
-                    onClick={() => scrollToMatch(currentMatchIndex - 1)}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-slate-800 p-3 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                    aria-label="Previous match"
-                  >
-                    <span className="material-symbols-outlined text-2xl">
-                      chevron_left
-                    </span>
-                  </button>
-                )}
-                {currentMatchIndex < mockMatches.length - 1 && (
-                  <button
-                    onClick={() => scrollToMatch(currentMatchIndex + 1)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-slate-800 p-3 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                    aria-label="Next match"
-                  >
-                    <span className="material-symbols-outlined text-2xl">
-                      chevron_right
-                    </span>
-                  </button>
-                )}
-              </div>
+                  {/* Navigation Arrows */}
+                  {currentMatchIndex > 0 && (
+                    <button
+                      onClick={() => scrollToMatch(currentMatchIndex - 1)}
+                      className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-slate-800 p-3 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                      aria-label="Previous match"
+                    >
+                      <span className="material-symbols-outlined text-2xl">
+                        chevron_left
+                      </span>
+                    </button>
+                  )}
+                  {currentMatchIndex < matches.length - 1 && (
+                    <button
+                      onClick={() => scrollToMatch(currentMatchIndex + 1)}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-slate-800 p-3 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                      aria-label="Next match"
+                    >
+                      <span className="material-symbols-outlined text-2xl">
+                        chevron_right
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Confessions & Likes Section */}
               <div className="flex flex-col gap-6 pt-8">
@@ -545,6 +587,36 @@ export default function Home() {
                   ))}
                 </div>
               </div>
+
+              {/* Info Section */}
+              {!loading && matches.length > 0 && (
+                <div className="mt-8 p-6 bg-primary/5 dark:bg-primary/10 rounded-lg">
+                  <h3 className="text-lg font-bold mb-2">How it works</h3>
+                  <ul className="space-y-2 text-sm text-muted-light dark:text-muted-dark">
+                    <li className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-primary text-base mt-0.5">
+                        check_circle
+                      </span>
+                      <span>Swipe right if you're interested, left if not</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-primary text-base mt-0.5">
+                        check_circle
+                      </span>
+                      <span>If they swipe right on you too, it's a match!</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-primary text-base mt-0.5">
+                        check_circle
+                      </span>
+                      <span>
+                        Identities remain anonymous until you both choose to
+                        reveal
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </main>

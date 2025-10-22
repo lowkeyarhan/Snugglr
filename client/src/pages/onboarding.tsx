@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { updateUserProfile } from "../utils/api";
 
 export default function Onboarding() {
   const [formData, setFormData] = useState({
@@ -11,9 +12,12 @@ export default function Onboarding() {
     topSong: "",
     topMovie: "",
     memeVibe: "",
-    bio: "",
-    avatar: null as File | null,
+    hint: "",
   });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -22,17 +26,52 @@ export default function Onboarding() {
   ) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
+    if (error) setError(null);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFormData((prev) => ({ ...prev, avatar: e.target.files![0] }));
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Please login first");
+      }
+
+      const submitData: any = {};
+
+      if (formData.name) submitData.name = formData.name;
+      if (formData.university) submitData.community = formData.university;
+      if (formData.dob) submitData.birthday = formData.dob;
+      if (formData.gender) submitData.gender = formData.gender.toLowerCase();
+      if (formData.pronouns) submitData.pronouns = formData.pronouns;
+      if (formData.hint) submitData.hint = formData.hint;
+      if (formData.topSong) submitData.musicPreferences = formData.topSong;
+      if (formData.topMovie) submitData.favoriteShows = formData.topMovie;
+      if (formData.memeVibe) submitData.memeVibe = formData.memeVibe;
+      if (formData.interests) {
+        const interestsArray = formData.interests
+          .split(",")
+          .map((interest) => interest.trim())
+          .filter((interest) => interest.length > 0);
+        submitData.interests = interestsArray;
+      }
+      const result = await updateUserProfile(submitData, token);
+
+      if (result.data?.user) {
+        localStorage.setItem("user", JSON.stringify(result.data.user));
+      }
+
+      setSuccess(true);
+      setTimeout(() => {
+        window.location.href = "/home";
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || "Failed to update profile. Please try again.");
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleSubmit = () => {
-    console.log("Form submitted:", formData);
-    // Add your form submission logic here
   };
 
   return (
@@ -254,46 +293,19 @@ export default function Onboarding() {
           {/* The Mystery Section */}
           <div className="bg-white dark:bg-card-dark rounded-xl shadow-lg dark:shadow-glow/50 border border-gray-200 dark:border-primary/20 p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-              {/* Avatar Upload */}
+              {/* Avatar Placeholder */}
               <div className="md:col-span-1 flex flex-col items-center">
-                <label className="cursor-pointer group" htmlFor="avatar-upload">
-                  <span className="flex h-32 w-32 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800/50 border-2 border-dashed border-primary/50 items-center justify-center transition-all duration-300 group-hover:border-primary group-hover:bg-primary/10">
-                    {formData.avatar ? (
-                      <img
-                        src={URL.createObjectURL(formData.avatar)}
-                        alt="Avatar preview"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-500 transition-all duration-300 group-hover:text-primary">
-                        add_a_photo
-                      </span>
-                    )}
+                <div className="flex h-32 w-32 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800/50 border-2 border-dashed border-primary/50 items-center justify-center">
+                  <span className="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-500">
+                    person
                   </span>
-                </label>
-                <input
-                  className="sr-only"
-                  id="avatar-upload"
-                  name="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                />
-                <button
-                  className="mt-4 bg-primary/10 dark:bg-primary/20 text-primary font-bold py-2 px-4 rounded-full text-sm hover:bg-primary/20 dark:hover:bg-primary/30 transition-colors"
-                  type="button"
-                  onClick={() =>
-                    document.getElementById("avatar-upload")?.click()
-                  }
-                >
-                  Upload DP
-                </button>
-                <p className="mt-1 text-xs text-center text-gray-500 dark:text-gray-400">
-                  Dont worry, we'll blur it out for you :)
+                </div>
+                <p className="mt-4 text-sm text-center text-gray-500 dark:text-gray-400">
+                  Avatar upload coming soon!
                 </p>
               </div>
 
-              {/* Fun Bio */}
+              {/* Hint */}
               <div className="md:col-span-2">
                 <div className="text-center mb-6">
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center gap-2 tracking-tight">
@@ -305,32 +317,79 @@ export default function Onboarding() {
                 </div>
                 <label
                   className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2"
-                  htmlFor="bio"
+                  htmlFor="hint"
                 >
-                  Fun Bio
+                  Hint
                 </label>
                 <textarea
                   className="w-full rounded-[10px] border-gray-300 dark:border-gray-600 bg-background-light dark:bg-gray-800/50 resize-none focus:ring-primary focus:border-primary placeholder-gray-400 dark:placeholder-gray-500 text-base"
-                  id="bio"
+                  id="hint"
                   placeholder="Something quirky like “You'll always find me in the library” or “I'm a bit of a nerd”"
                   rows={4}
-                  value={formData.bio}
+                  value={formData.hint}
                   onChange={handleInputChange}
                 ></textarea>
               </div>
             </div>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mt-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 max-w-md mx-auto">
+              <p className="text-sm text-red-600 dark:text-red-400 text-center">
+                {error}
+              </p>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {success && (
+            <div className="mt-6 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 max-w-md mx-auto">
+              <p className="text-sm text-green-600 dark:text-green-400 text-center">
+                Profile updated successfully! Redirecting...
+              </p>
+            </div>
+          )}
+
           {/* Submit Button */}
           <div className="mt-8">
             <button
-              className="w-full max-w-md mx-auto flex items-center justify-center rounded-full h-16 px-8 bg-primary text-white text-xl font-bold hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/40 dark:shadow-glow transform hover:scale-105"
+              className="w-full max-w-md mx-auto flex items-center justify-center rounded-full h-16 px-8 bg-primary text-white text-xl font-bold hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/40 dark:shadow-glow transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               onClick={handleSubmit}
+              disabled={loading}
             >
-              <span>Save &amp; Continue</span>
-              <span className="material-symbols-outlined ml-2">
-                arrow_forward
-              </span>
+              {loading ? (
+                <>
+                  <svg
+                    className="animate-spin h-6 w-6 text-white mr-2"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <span>Save &amp; Continue</span>
+                  <span className="material-symbols-outlined ml-2">
+                    arrow_forward
+                  </span>
+                </>
+              )}
             </button>
           </div>
         </div>

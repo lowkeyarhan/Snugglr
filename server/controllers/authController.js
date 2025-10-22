@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import User from "../models/user.js";
+import User from "../models/User.js";
 import AllowedDomain from "../models/AllowedDomain.js";
 import generateToken from "../config/token.js";
 import { generateUniqueUsername } from "../utils/usernameGenerator.js";
@@ -19,15 +19,18 @@ export const register = async (req, res) => {
       musicPreferences,
       favoriteShows,
       memeVibe,
-      funBio,
     } = req.body;
 
-    if (!name || !email || !password || !community) {
+    if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Please provide name, email, password, and community",
+        message: "Please provide email and password",
       });
     }
+
+    // Use defaults for name and community if not provided (will be filled in onboarding)
+    const userName = name || "User";
+    const userCommunity = community || "Pending";
 
     // Verify email domain is allowed
     const emailDomain = email.split("@")[1]?.toLowerCase();
@@ -83,12 +86,12 @@ export const register = async (req, res) => {
 
     // Create new user
     const user = await User.create({
-      name,
+      name: userName,
       username,
       email,
       phoneNumber,
       password: hashedPassword,
-      community,
+      community: userCommunity,
       birthday,
       gender,
       pronouns,
@@ -97,7 +100,6 @@ export const register = async (req, res) => {
       musicPreferences,
       favoriteShows,
       memeVibe,
-      funBio,
     });
 
     // Generate JWT token
@@ -114,6 +116,8 @@ export const register = async (req, res) => {
           username: user.username,
           email: user.email,
           image: user.image,
+          settings: user.settings,
+          privacy: user.privacy,
         },
         token,
       },
@@ -130,22 +134,28 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, phoneNumber, password } = req.body;
 
     // Validate input
-    if (!email || !password) {
+    if ((!email && !phoneNumber) || !password) {
       return res.status(400).json({
         success: false,
-        message: "Please provide email and password",
+        message: "Please provide email or phone number and password",
       });
     }
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    // Find user by email or phone number
+    let user;
+    if (email) {
+      user = await User.findOne({ email });
+    } else if (phoneNumber) {
+      user = await User.findOne({ phoneNumber });
+    }
+
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message: "Invalid credentials",
       });
     }
 
@@ -154,7 +164,7 @@ export const login = async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message: "Invalid credentials",
       });
     }
 
@@ -171,11 +181,14 @@ export const login = async (req, res) => {
           name: user.name,
           username: user.username,
           email: user.email,
+          phoneNumber: user.phoneNumber,
           gender: user.gender,
           age: user.age,
-          bio: user.bio,
+          hint: user.hint,
           interests: user.interests,
           image: user.image,
+          settings: user.settings,
+          privacy: user.privacy,
         },
         token,
       },
@@ -192,7 +205,6 @@ export const login = async (req, res) => {
 
 export const getMe = async (req, res) => {
   try {
-    // req.user is set by authMiddleware
     const user = await User.findById(req.user._id).select("-password");
 
     res.status(200).json({
@@ -203,11 +215,26 @@ export const getMe = async (req, res) => {
           name: user.name,
           username: user.username,
           email: user.email,
+          phoneNumber: user.phoneNumber,
           gender: user.gender,
           age: user.age,
-          bio: user.bio,
+          birthday: user.birthday,
+          pronouns: user.pronouns,
+          hint: user.hint,
           interests: user.interests,
+          musicPreferences: user.musicPreferences,
+          favoriteShows: user.favoriteShows,
+          memeVibe: user.memeVibe,
           image: user.image,
+          community: user.community,
+          favoriteSpot: user.favoriteSpot,
+          loveLanguage: user.loveLanguage,
+          quirkyFact: user.quirkyFact,
+          fantasies: user.fantasies,
+          idealDate: user.idealDate,
+          hint: user.hint,
+          settings: user.settings,
+          privacy: user.privacy,
         },
       },
     });
