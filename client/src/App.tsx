@@ -1,5 +1,6 @@
 import Auth from "./pages/auth";
 import Chat from "./pages/chat";
+import Create from "./pages/create";
 import Home from "./pages/home";
 import Landing from "./pages/landing";
 import Onboarding from "./pages/onboarding";
@@ -63,6 +64,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/create"
+          element={
+            <ProtectedRoute>
+              <Create />
             </ProtectedRoute>
           }
         />

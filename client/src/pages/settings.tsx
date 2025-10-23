@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, updateUserSettings } from "../utils/api";
+import {
+  getCurrentUser,
+  updateUserSettings,
+  changePassword,
+} from "../utils/api";
 
 export default function Settings() {
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -9,6 +13,18 @@ export default function Settings() {
   const [hideDP, setHideDP] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Change password expandable section state
+  const [showChangePasswordSection, setShowChangePasswordSection] =
+    useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   // Load current settings from backend
   useEffect(() => {
@@ -82,6 +98,139 @@ export default function Settings() {
     console.log("Logout clicked");
   };
 
+  // Validation functions
+  const validateCurrentPassword = () => {
+    return currentPassword.length > 0;
+  };
+
+  const validateNewPassword = () => {
+    return newPassword.length >= 6;
+  };
+
+  const validateConfirmPassword = () => {
+    return confirmPassword.length > 0 && newPassword === confirmPassword;
+  };
+
+  const validateAllFields = () => {
+    return (
+      validateCurrentPassword() &&
+      validateNewPassword() &&
+      validateConfirmPassword() &&
+      currentPassword !== newPassword
+    );
+  };
+
+  const getFieldBorderClass = (isValid: boolean) => {
+    if (!isValid) return "border-slate-300 dark:border-slate-600";
+    return "border-green-500 dark:border-green-400";
+  };
+
+  const handlePasswordFieldChange = (field: string, value: string) => {
+    setPasswordError("");
+    setHasUnsavedChanges(true);
+
+    switch (field) {
+      case "current":
+        setCurrentPassword(value);
+        break;
+      case "new":
+        setNewPassword(value);
+        break;
+      case "confirm":
+        setConfirmPassword(value);
+        break;
+    }
+  };
+
+  const handleSaveAllChanges = async () => {
+    setPasswordError("");
+
+    // Validate password fields if they have content
+    if (currentPassword || newPassword || confirmPassword) {
+      if (!validateAllFields()) {
+        if (!currentPassword) setPasswordError("Current password is required");
+        else if (!validateNewPassword())
+          setPasswordError("New password must be at least 6 characters long");
+        else if (!validateConfirmPassword())
+          setPasswordError("New passwords do not match");
+        else if (currentPassword === newPassword)
+          setPasswordError(
+            "New password must be different from current password"
+          );
+        return;
+      }
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setPasswordError("Authentication required");
+        return;
+      }
+
+      // Save password if fields are filled
+      if (currentPassword && newPassword && confirmPassword) {
+        await changePassword(
+          {
+            currentPassword,
+            newPassword,
+          },
+          token
+        );
+
+        // Reset password fields
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setShowChangePasswordSection(false);
+      }
+
+      // Save other settings
+      await updateUserSettings(
+        {
+          pushNotifications,
+          emailNotifications,
+          showActiveStatus,
+          hideDisplayPicture: hideDP,
+        },
+        token
+      );
+
+      setSaveSuccess(true);
+      setSaveError(false);
+
+      // Reset success state and hide button after 3 seconds
+      setTimeout(() => {
+        setSaveSuccess(false);
+        setHasUnsavedChanges(false);
+      }, 3000);
+    } catch (error: any) {
+      setPasswordError(error.message || "Failed to save changes");
+      setSaveError(true);
+      setSaveSuccess(false);
+
+      // Reset error state after 3 seconds
+      setTimeout(() => {
+        setSaveError(false);
+      }, 3000);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const toggleChangePasswordSection = () => {
+    setShowChangePasswordSection(!showChangePasswordSection);
+    if (showChangePasswordSection) {
+      // Reset fields when closing
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordError("");
+    }
+  };
+
   return (
     <div className="relative flex h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark">
       <div className="flex h-full w-full">
@@ -90,7 +239,7 @@ export default function Settings() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto h-screen">
-          <div className="px-4 sm:px-6 lg:px-8 py-8 w-full">
+          <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-4 w-full">
             <div className="w-full max-w-3xl mx-auto">
               <div className="space-y-8">
                 {/* Header with Profile */}
@@ -127,16 +276,99 @@ export default function Settings() {
                           chevron_right
                         </span>
                       </button>
-                      <button className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group cursor-pointer">
+                      <button
+                        onClick={toggleChangePasswordSection}
+                        className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group cursor-pointer"
+                      >
                         <div className="flex items-center gap-4">
                           <p className="font-semibold text-slate-900 dark:text-slate-100">
                             Change Password
                           </p>
                         </div>
-                        <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">
+                        <span
+                          className={`material-symbols-outlined text-slate-400 group-hover:text-primary transition-all ${
+                            showChangePasswordSection ? "rotate-90" : ""
+                          }`}
+                        >
                           chevron_right
                         </span>
                       </button>
+
+                      {/* Expandable Password Change Section */}
+                      {showChangePasswordSection && (
+                        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
+                          {passwordError && (
+                            <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                              <p className="text-red-600 dark:text-red-400 text-sm">
+                                {passwordError}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Current Password
+                              </label>
+                              <input
+                                type="password"
+                                value={currentPassword}
+                                onChange={(e) =>
+                                  handlePasswordFieldChange(
+                                    "current",
+                                    e.target.value
+                                  )
+                                }
+                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-colors ${getFieldBorderClass(
+                                  validateCurrentPassword()
+                                )}`}
+                                placeholder="Enter current password"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                New Password
+                              </label>
+                              <input
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) =>
+                                  handlePasswordFieldChange(
+                                    "new",
+                                    e.target.value
+                                  )
+                                }
+                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-colors ${getFieldBorderClass(
+                                  validateNewPassword()
+                                )}`}
+                                placeholder="Enter new password (min 6 characters)"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Confirm New Password
+                              </label>
+                              <input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) =>
+                                  handlePasswordFieldChange(
+                                    "confirm",
+                                    e.target.value
+                                  )
+                                }
+                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-colors ${getFieldBorderClass(
+                                  validateConfirmPassword()
+                                )}`}
+                                placeholder="Confirm new password"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <button className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group cursor-pointer">
                         <div className="flex items-center gap-4">
                           <p className="font-semibold text-slate-900 dark:text-slate-100">
@@ -388,18 +620,84 @@ export default function Settings() {
                     </div>
                   </section>
 
-                  {/* Logout Button */}
-                  <section className="pt-4 pb-8 flex justify-center">
-                    <button
-                      onClick={handleLogout}
-                      className="w-full sm:w-auto min-w-[200px] px-8 py-3.5 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-full hover:from-red-600 hover:to-red-700 transition-all shadow-soft hover:shadow-lifted transform hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center justify-center gap-2 group"
-                    >
-                      <span className="material-symbols-outlined text-xl group-hover:rotate-12 transition-transform">
-                        logout
-                      </span>
-                      <span>Logout</span>
-                    </button>
-                  </section>
+                  {/* Save Changes Button */}
+                  <div className="flex justify-center gap-6 ">
+                    {(hasUnsavedChanges || saveSuccess || saveError) && (
+                      <section className="flex justify-center">
+                        <button
+                          onClick={handleSaveAllChanges}
+                          disabled={passwordLoading || saveSuccess || saveError}
+                          className={`h-full w-full px-8 rounded-full text-white font-semibold shadow-soft hover:shadow-lifted transition-all transform focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center justify-center gap-2 group disabled:cursor-not-allowed ${
+                            saveSuccess
+                              ? "bg-green-500 shadow-green-500/40 scale-105"
+                              : saveError
+                              ? "bg-red-500 shadow-red-500/40 scale-105"
+                              : "bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 shadow-primary/40 dark:shadow-glow active:scale-95 focus:ring-primary disabled:opacity-50 disabled:transform-none"
+                          }`}
+                        >
+                          {passwordLoading ? (
+                            <>
+                              <svg
+                                className="animate-spin h-6 w-6 text-white"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Saving...
+                            </>
+                          ) : saveSuccess ? (
+                            <>
+                              <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">
+                                check_circle
+                              </span>
+                              <span>Saved</span>
+                            </>
+                          ) : saveError ? (
+                            <>
+                              <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">
+                                error
+                              </span>
+                              <span>Error</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">
+                                save
+                              </span>
+                              <span>Save Changes</span>
+                            </>
+                          )}
+                        </button>
+                      </section>
+                    )}
+
+                    {/* Logout Button */}
+                    <section className="flex justify-center">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full sm:w-auto min-w-[250px] px-8 py-3.5 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-full hover:from-red-600 hover:to-red-700 transition-all shadow-soft hover:shadow-lifted transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center justify-center gap-2 group"
+                      >
+                        <span className="material-symbols-outlined text-xl transition-transform">
+                          logout
+                        </span>
+                        <span>Logout</span>
+                      </button>
+                    </section>
+                  </div>
                 </div>
               </div>
             </div>

@@ -116,7 +116,7 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
           } py-3.5 text-base font-normal rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all duration-200 cursor-pointer group`}
           title="University"
         >
-          <div className="w-7 h-7 flex-shrink-0 group-hover:scale-105 transition-transform">
+          <div className="w-full h-50 flex-shrink-0  transition-transform">
             <img
               src={universityLogo}
               alt="University Logo"

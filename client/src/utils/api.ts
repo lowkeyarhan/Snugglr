@@ -204,6 +204,40 @@ export const updateUserSettings = async (
 };
 
 /**
+ * CHANGE PASSWORD
+ * Changes user password
+ * @param data - Password change payload
+ * @param token - JWT token for authentication
+ * @returns Promise with success response
+ */
+export const changePassword = async (
+  data: {
+    currentPassword: string;
+    newPassword: string;
+  },
+  token: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await api.put("/api/auth/change-password", data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data.message || "Failed to change password"
+      );
+    } else if (error.request) {
+      throw new Error("Cannot connect to server. Please try again.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+/**
  * GET POTENTIAL MATCHES
  * Fetches users you can swipe on
  * @param token - JWT token for authentication
