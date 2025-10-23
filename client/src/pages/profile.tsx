@@ -200,8 +200,8 @@ export default function Profile() {
             {/* Profile Picture - Placeholder for now */}
             <div className="relative flex flex-col items-center gap-6 mb-10">
               <div className="relative group">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center shadow-lg">
-                  <span className="material-symbols-outlined text-6xl text-primary/60">
+                <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center shadow-lg">
+                  <span className="material-symbols-outlined text-6xl text-gray-400 dark:text-gray-600">
                     person
                   </span>
                 </div>

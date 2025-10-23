@@ -63,13 +63,14 @@ export default function Home() {
       const response = await likeConfession(confessionId, token);
 
       if (response.success) {
-        // Update the confession with new like count
+        // Update the confession with new like count and like state
         setConfessions((prev) =>
           prev.map((confession) =>
             confession._id === confessionId
               ? {
                   ...confession,
                   likesCount: response.data.likesCount,
+                  hasLiked: response.data.hasLiked,
                 }
               : confession
           )
@@ -637,10 +638,16 @@ export default function Home() {
                                 onClick={() =>
                                   toggleConfessionLike(confession._id)
                                 }
-                                className="flex items-center gap-1.5 hover:text-pink-500 transition-colors"
+                                className={`flex items-center gap-1.5 transition-colors ${
+                                  confession.hasLiked
+                                    ? "text-pink-500 hover:text-pink-600"
+                                    : "hover:text-pink-500"
+                                }`}
                               >
                                 <span className="material-symbols-outlined text-xl">
-                                  favorite_border
+                                  {confession.hasLiked
+                                    ? "favorite"
+                                    : "favorite_border"}
                                 </span>
                                 <span className="text-sm font-medium">
                                   {confession.likesCount || 0}
@@ -669,21 +676,12 @@ export default function Home() {
                   <h3 className="text-lg font-bold mb-2">How it works</h3>
                   <ul className="space-y-2 text-sm text-muted-light dark:text-muted-dark">
                     <li className="flex items-start gap-2">
-                      <span className="material-symbols-outlined text-primary text-base mt-0.5">
-                        check_circle
-                      </span>
                       <span>Swipe right if you're interested, left if not</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="material-symbols-outlined text-primary text-base mt-0.5">
-                        check_circle
-                      </span>
                       <span>If they swipe right on you too, it's a match!</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="material-symbols-outlined text-primary text-base mt-0.5">
-                        check_circle
-                      </span>
                       <span>
                         Identities remain anonymous until you both choose to
                         reveal

@@ -172,12 +172,7 @@ export default function Create() {
                   <button
                     onClick={handlePost}
                     disabled={!confessionText.trim() || isPosting || isPosted}
-                    className="flex items-center justify-center gap-2 w-auto overflow-hidden rounded-full h-16 px-10 text-white text-xl font-bold leading-normal tracking-wide transition-all transform active:scale-[0.95] disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: "#FF69B4",
-                      boxShadow:
-                        "0 8px 16px rgba(255, 105, 180, 0.2), 0 4px 6px rgba(255, 105, 180, 0.1)",
-                    }}
+                    className="flex flex-row rounded-lg bg-pink-600 hover:bg-pink-500 text-white shadow-lg shadow-pink-500/30 transition-colors font-bold items-center justify-center gap-2 w-auto overflow-hidden h-16 px-10 text-xl leading-normal tracking-wide transform active:scale-[0.95] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isPosting ? (
                       <>

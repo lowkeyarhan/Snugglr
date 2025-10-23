@@ -1,5 +1,5 @@
 import Match from "../models/Match.js";
-import Chat from "../models/chat.js";
+import Chat from "../models/Chat.js";
 import User from "../models/User.js";
 import { createAndEmitNotification } from "../utils/notificationHelper.js";
 

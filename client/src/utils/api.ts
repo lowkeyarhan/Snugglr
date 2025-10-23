@@ -427,6 +427,7 @@ export const likeConfession = async (
   message: string;
   data: {
     likesCount: number;
+    hasLiked: boolean;
   };
 }> => {
   try {
@@ -490,6 +491,197 @@ export const commentOnConfession = async (
     if (error.response) {
       throw new Error(
         error.response.data.message || "Failed to comment on confession"
+      );
+    } else if (error.request) {
+      throw new Error("Cannot connect to server. Please try again.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+/**
+ * GET CHATS
+ * Fetches all chats for the current user
+ * @param token - JWT token for authentication
+ * @returns Promise with chats data
+ */
+export const getChats = async (
+  token: string
+): Promise<{
+  success: boolean;
+  data: {
+    chats: any[];
+  };
+}> => {
+  try {
+    const response = await api.get("/api/chat", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(error.response.data.message || "Failed to fetch chats");
+    } else if (error.request) {
+      throw new Error("Cannot connect to server. Please try again.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+/**
+ * GET MESSAGES
+ * Fetches messages for a specific chat
+ * @param chatId - The chat ID to fetch messages for
+ * @param token - JWT token for authentication
+ * @returns Promise with messages data
+ */
+export const getMessages = async (
+  chatId: string,
+  token: string
+): Promise<{
+  success: boolean;
+  data: {
+    messages: any[];
+    revealed: boolean;
+  };
+}> => {
+  try {
+    const response = await api.get(`/api/chat/${chatId}/messages`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data.message || "Failed to fetch messages"
+      );
+    } else if (error.request) {
+      throw new Error("Cannot connect to server. Please try again.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+/**
+ * SEND MESSAGE
+ * Sends a message to a chat
+ * @param chatId - The chat ID to send message to
+ * @param text - The message text
+ * @param token - JWT token for authentication
+ * @returns Promise with message data
+ */
+export const sendMessage = async (
+  chatId: string,
+  text: string,
+  token: string
+): Promise<{
+  success: boolean;
+  message: string;
+  data: {
+    message: any;
+  };
+}> => {
+  try {
+    const response = await api.post(
+      `/api/chat/${chatId}/message`,
+      { text },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(error.response.data.message || "Failed to send message");
+    } else if (error.request) {
+      throw new Error("Cannot connect to server. Please try again.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+/**
+ * SUBMIT GUESS
+ * Submits a guess for the identity guessing game
+ * @param chatId - The chat ID to submit guess for
+ * @param guess - The guess text
+ * @param token - JWT token for authentication
+ * @returns Promise with guess result
+ */
+export const submitGuess = async (
+  chatId: string,
+  guess: string,
+  token: string
+): Promise<{
+  success: boolean;
+  message: string;
+  data: {
+    guessSubmitted: boolean;
+    bothGuessed: boolean;
+    revealed: boolean;
+    chat?: any;
+  };
+}> => {
+  try {
+    const response = await api.post(
+      "/api/chat/guess",
+      { chatId, guess },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(error.response.data.message || "Failed to submit guess");
+    } else if (error.request) {
+      throw new Error("Cannot connect to server. Please try again.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+/**
+ * GET REVEAL STATUS
+ * Gets the reveal status of a chat
+ * @param chatId - The chat ID to check reveal status for
+ * @param token - JWT token for authentication
+ * @returns Promise with reveal status
+ */
+export const getRevealStatus = async (
+  chatId: string,
+  token: string
+): Promise<{
+  success: boolean;
+  data: {
+    revealed: boolean;
+    users: any[] | null;
+  };
+}> => {
+  try {
+    const response = await api.get(`/api/chat/${chatId}/reveal-status`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data.message || "Failed to get reveal status"
       );
     } else if (error.request) {
       throw new Error("Cannot connect to server. Please try again.");

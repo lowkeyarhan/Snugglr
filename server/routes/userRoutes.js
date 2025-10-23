@@ -16,7 +16,7 @@ router.get("/:userId", authMiddleware, getUserById);
 router.get("/community/:community", authMiddleware, async (req, res) => {
   try {
     const { community } = req.params;
-    const users = await (await import("../models/user.js")).default
+    const users = await (await import("../models/User.js")).default
       .find({ community })
       .select("-password");
     res.status(200).json({

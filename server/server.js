@@ -20,16 +20,6 @@ import { cleanupOldConfessions } from "./controllers/confessionController.js";
 dotenv.config();
 const app = express();
 
-const server = createServer(app);
-
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
-
 app.use(helmet());
 app.use(
   cors({
@@ -74,9 +64,6 @@ app.use((req, res) => {
 });
 
 app.use(errorHandler);
-app.set("io", io);
-chatSocket(io);
-notificationSocket(io);
 
 let PORT = parseInt(process.env.PORT) || 8081;
 
@@ -102,7 +89,22 @@ const startServer = async () => {
     await connectDB();
 
     const tryListen = (port) => {
-      server
+      // Create a new server instance for each attempt
+      const currentServer = createServer(app);
+      const currentIo = new Server(currentServer, {
+        cors: {
+          origin: process.env.CLIENT_URL || "http://localhost:5173",
+          methods: ["GET", "POST"],
+          credentials: true,
+        },
+      });
+
+      // Set up socket handlers for this server instance
+      app.set("io", currentIo);
+      chatSocket(currentIo);
+      notificationSocket(currentIo);
+
+      currentServer
         .listen(port)
         .on("listening", () => {
           console.log(`Server running on port ${port}`);
@@ -113,7 +115,10 @@ const startServer = async () => {
         .on("error", (err) => {
           if (err.code === "EADDRINUSE") {
             console.log(`Port ${port} is busy, trying ${port + 1}...`);
-            tryListen(port + 1);
+            // Close the current server and try next port
+            currentServer.close(() => {
+              tryListen(port + 1);
+            });
           } else {
             console.error(`Error starting server: ${err.message}`);
             process.exit(1);

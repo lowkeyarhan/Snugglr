@@ -1,6 +1,6 @@
-import Chat from "../models/chat.js";
+import Chat from "../models/Chat.js";
 import Message from "../models/Message.js";
-import User from "../models/user.js";
+import User from "../models/User.js";
 import { createAndEmitNotification } from "../utils/notificationHelper.js";
 
 export const getChats = async (req, res) => {
@@ -10,7 +10,7 @@ export const getChats = async (req, res) => {
     const chats = await Chat.find({
       users: currentUserId,
     })
-      .populate("users", "-password -guesses")
+      .populate("users", "-password")
       .sort({ updatedAt: -1 });
 
     res.status(200).json({
@@ -54,7 +54,7 @@ export const getMessages = async (req, res) => {
     }
 
     const messages = await Message.find({ chatId })
-      .populate("sender", "name image")
+      .populate("sender", "name username image")
       .sort({ createdAt: 1 });
 
     res.status(200).json({

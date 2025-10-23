@@ -1,6 +1,6 @@
 import Message from "../models/Message.js";
-import Chat from "../models/chat.js";
-import User from "../models/user.js";
+import Chat from "../models/Chat.js";
+import User from "../models/User.js";
 import { createNotification } from "../controllers/notificationController.js";
 import { emitNotification } from "./notificationSocket.js";
 

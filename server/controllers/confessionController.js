@@ -1,5 +1,5 @@
 import Confession from "../models/Confession.js";
-import User from "../models/user.js";
+import User from "../models/User.js";
 import AllowedDomain from "../models/AllowedDomain.js";
 import { createAndEmitNotification } from "../utils/notificationHelper.js";
 
@@ -105,6 +105,11 @@ export const getConfessions = async (req, res) => {
     const confessionsWithCounts = confessions.map((confession) => ({
       ...confession,
       commentsCount: confession.comments.length,
+      hasLiked: confession.likedBy
+        ? confession.likedBy.some(
+            (id) => id.toString() === req.user._id.toString()
+          )
+        : false,
     }));
 
     res.status(200).json({
@@ -129,6 +134,7 @@ export const getConfessions = async (req, res) => {
 export const likeConfession = async (req, res) => {
   try {
     const { confessionId } = req.params;
+    const userId = req.user._id;
 
     const confession = await Confession.findById(confessionId);
 
@@ -158,44 +164,70 @@ export const likeConfession = async (req, res) => {
       });
     }
 
-    // Increment the likes count
-    confession.likesCount += 1;
-    await confession.save();
+    // Check if user has already liked this confession
+    const hasLiked = confession.likedBy
+      ? confession.likedBy.some((id) => id.toString() === userId.toString())
+      : false;
+    let action = "";
 
-    // Create notification for the confession author
-    try {
-      const confessionAuthor = await User.findOne({
-        username: confession.username,
-      });
-
-      if (
-        confessionAuthor &&
-        confessionAuthor._id.toString() !== req.user._id.toString()
-      ) {
-        const io = req.app.get("io");
-        await createAndEmitNotification(
-          {
-            recipient: confessionAuthor._id,
-            sender: req.user._id,
-            type: "confession_like",
-            title: "New Like on Confession",
-            message: `Someone liked your confession`,
-            relatedConfession: confession._id,
-            actionUrl: `/confessions/${confession._id}`,
-          },
-          io
-        );
-      }
-    } catch (notifError) {
-      console.error(`Error creating like notification: ${notifError.message}`);
-      // Don't fail the request if notification creation fails
+    // Initialize likedBy array if it doesn't exist
+    if (!confession.likedBy) {
+      confession.likedBy = [];
     }
+
+    if (hasLiked) {
+      // Unlike: remove user from likedBy array and decrement count
+      confession.likedBy = confession.likedBy.filter(
+        (id) => id.toString() !== userId.toString()
+      );
+      confession.likesCount = Math.max(0, confession.likesCount - 1);
+      action = "unliked";
+    } else {
+      // Like: add user to likedBy array and increment count
+      confession.likedBy.push(userId);
+      confession.likesCount += 1;
+      action = "liked";
+
+      // Create notification for the confession author (only when liking)
+      try {
+        const confessionAuthor = await User.findOne({
+          username: confession.username,
+        });
+
+        if (
+          confessionAuthor &&
+          confessionAuthor._id.toString() !== req.user._id.toString()
+        ) {
+          const io = req.app.get("io");
+          await createAndEmitNotification(
+            {
+              recipient: confessionAuthor._id,
+              sender: req.user._id,
+              type: "confession_like",
+              title: "New Like on Confession",
+              message: `Someone liked your confession`,
+              relatedConfession: confession._id,
+              actionUrl: `/confessions/${confession._id}`,
+            },
+            io
+          );
+        }
+      } catch (notifError) {
+        console.error(
+          `Error creating like notification: ${notifError.message}`
+        );
+        // Don't fail the request if notification creation fails
+      }
+    }
+
+    await confession.save();
 
     return res.status(200).json({
       success: true,
-      message: "Confession liked",
+      message: `Confession ${action}`,
       data: {
         likesCount: confession.likesCount,
+        hasLiked: !hasLiked, // Return the new state
       },
     });
   } catch (error) {
