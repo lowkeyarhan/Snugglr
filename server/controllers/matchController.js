@@ -6,6 +6,7 @@ export const swipe = async (req, res) => {
   try {
     const { targetUserId, action } = req.body;
     const currentUserId = req.user._id;
+    const currentUserGender = req.user.gender;
 
     // Validate input
     if (!targetUserId || !action) {
@@ -21,6 +22,33 @@ export const swipe = async (req, res) => {
         success: false,
         message: "Cannot swipe on yourself",
       });
+    }
+
+    // Get target user to check gender compatibility
+    const User = (await import("../models/User.js")).default;
+    const targetUser = await User.findById(targetUserId).select("gender");
+
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Target user not found",
+      });
+    }
+
+    // Check gender compatibility for opposite gender matching
+    if (currentUserGender && targetUser.gender) {
+      const isSameGender = currentUserGender === targetUser.gender;
+      const isOppositeGender =
+        (currentUserGender === "male" && targetUser.gender === "female") ||
+        (currentUserGender === "female" && targetUser.gender === "male");
+
+      // Only allow swipes if genders are opposite (or if current user is "other")
+      if (currentUserGender !== "other" && !isOppositeGender) {
+        return res.status(400).json({
+          success: false,
+          message: "Matches are only available between opposite genders",
+        });
+      }
     }
 
     // Only process "like" actions (ignore "pass")
@@ -132,6 +160,17 @@ export const swipe = async (req, res) => {
 export const getMatches = async (req, res) => {
   try {
     const currentUserId = req.user._id;
+    const currentUserGender = req.user.gender;
+
+    // If user hasn't set their gender, return empty results
+    if (!currentUserGender) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          matches: [],
+        },
+      });
+    }
 
     // Find all matches where current user is involved and status is "matched"
     const matches = await Match.find({
@@ -142,19 +181,38 @@ export const getMatches = async (req, res) => {
       .populate("user2", "-password -guesses") // Populate user2 details
       .sort({ updatedAt: -1 }); // Sort by most recent
 
-    // Format response to show the other user in each match
-    const formattedMatches = matches.map((match) => {
-      const otherUser =
-        match.user1._id.toString() === currentUserId.toString()
-          ? match.user2
-          : match.user1;
+    // Format response to show the other user in each match, filtering by opposite gender
+    const formattedMatches = matches
+      .map((match) => {
+        const otherUser =
+          match.user1._id.toString() === currentUserId.toString()
+            ? match.user2
+            : match.user1;
 
-      return {
-        matchId: match._id,
-        user: otherUser,
-        matchedAt: match.updatedAt,
-      };
-    });
+        return {
+          matchId: match._id,
+          user: otherUser,
+          matchedAt: match.updatedAt,
+        };
+      })
+      .filter((match) => {
+        // Filter to only show matches with opposite gender
+        const otherUserGender = match.user.gender;
+
+        if (currentUserGender === "male" && otherUserGender === "female") {
+          return true;
+        } else if (
+          currentUserGender === "female" &&
+          otherUserGender === "male"
+        ) {
+          return true;
+        } else if (currentUserGender === "other") {
+          // For "other" gender, allow all matches
+          return true;
+        }
+
+        return false;
+      });
 
     res.status(200).json({
       success: true,

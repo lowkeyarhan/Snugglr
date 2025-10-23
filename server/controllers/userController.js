@@ -58,17 +58,11 @@ export const updateProfile = async (req, res) => {
     if (favoriteShows) updateData.favoriteShows = favoriteShows;
     if (memeVibe) updateData.memeVibe = memeVibe;
     if (community) updateData.community = community;
-
-    // Campus Life fields
     if (favoriteSpot) updateData.favoriteSpot = favoriteSpot;
     if (loveLanguage) updateData.loveLanguage = loveLanguage;
     if (quirkyFact) updateData.quirkyFact = quirkyFact;
-
-    // Dreams & Desires fields
     if (fantasies) updateData.fantasies = fantasies;
     if (idealDate) updateData.idealDate = idealDate;
-
-    // The Mystery field
     if (hint) updateData.hint = hint;
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
@@ -84,7 +78,7 @@ export const updateProfile = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(`❌ Update Profile Error: ${error.message}`);
+    console.error(`Update Profile Error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Error updating profile",
@@ -124,7 +118,7 @@ export const updateSettings = async (req, res) => {
       data: { user: updatedUser },
     });
   } catch (error) {
-    console.error(`❌ Update Settings Error: ${error.message}`);
+    console.error(`Update Settings Error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Error updating settings",
@@ -137,6 +131,17 @@ export const getPotentialMatches = async (req, res) => {
   try {
     const currentUserId = req.user._id;
     const userCommunity = req.user.community;
+    const currentUserGender = req.user.gender;
+
+    // If user hasn't set their gender, return empty results
+    if (!currentUserGender) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          users: [],
+        },
+      });
+    }
 
     const existingMatches = await Match.find({
       $or: [{ user1: currentUserId }, { user2: currentUserId }],
@@ -148,11 +153,24 @@ export const getPotentialMatches = async (req, res) => {
         : match.user1
     );
 
+    // Determine opposite gender for filtering
+    let oppositeGender;
+    if (currentUserGender === "male") {
+      oppositeGender = "female";
+    } else if (currentUserGender === "female") {
+      oppositeGender = "male";
+    } else {
+      // For "other" gender, we'll allow matching with all genders
+      // You can modify this logic based on your requirements
+      oppositeGender = { $in: ["male", "female", "other"] };
+    }
+
     const potentialMatches = await User.find({
       _id: {
         $nin: [...swipedUserIds, currentUserId],
       },
       community: userCommunity,
+      gender: oppositeGender,
     })
       .select("-password -guesses")
       .limit(20);
@@ -164,7 +182,7 @@ export const getPotentialMatches = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(`❌ Get Potential Matches Error: ${error.message}`);
+    console.error(`Get Potential Matches Error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Error fetching potential matches",
@@ -193,7 +211,7 @@ export const getUserById = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(`❌ Get User Error: ${error.message}`);
+    console.error(`Get User Error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Error fetching user",
