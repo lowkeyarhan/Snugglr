@@ -328,4 +328,175 @@ export const getMatches = async (token: string): Promise<any> => {
   }
 };
 
+/**
+ * CREATE CONFESSION
+ * Creates a new confession
+ * @param data - Confession data
+ * @param token - JWT token for authentication
+ * @returns Promise with confession data
+ */
+export const createConfession = async (
+  data: {
+    text: string;
+  },
+  token: string
+): Promise<{
+  success: boolean;
+  message: string;
+  data?: {
+    confession: any;
+  };
+}> => {
+  try {
+    const response = await api.post("/api/confessions", data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data.message || "Failed to create confession"
+      );
+    } else if (error.request) {
+      throw new Error("Cannot connect to server. Please try again.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+/**
+ * GET CONFESSIONS
+ * Fetches confessions for the user's domain
+ * @param token - JWT token for authentication
+ * @param page - Page number for pagination
+ * @param limit - Number of confessions per page
+ * @returns Promise with confessions data
+ */
+export const getConfessions = async (
+  token: string,
+  page: number = 1,
+  limit: number = 20
+): Promise<{
+  success: boolean;
+  data: {
+    confessions: any[];
+    currentPage: number;
+    totalPages: number;
+    totalConfessions: number;
+  };
+}> => {
+  try {
+    const response = await api.get("/api/confessions", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: {
+        page,
+        limit,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data.message || "Failed to fetch confessions"
+      );
+    } else if (error.request) {
+      throw new Error("Cannot connect to server. Please try again.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+/**
+ * LIKE CONFESSION
+ * Likes a confession
+ * @param confessionId - The confession ID to like
+ * @param token - JWT token for authentication
+ * @returns Promise with like result
+ */
+export const likeConfession = async (
+  confessionId: string,
+  token: string
+): Promise<{
+  success: boolean;
+  message: string;
+  data: {
+    likesCount: number;
+  };
+}> => {
+  try {
+    const response = await api.post(
+      `/api/confessions/${confessionId}/like`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data.message || "Failed to like confession"
+      );
+    } else if (error.request) {
+      throw new Error("Cannot connect to server. Please try again.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
+/**
+ * COMMENT ON CONFESSION
+ * Adds a comment to a confession
+ * @param confessionId - The confession ID to comment on
+ * @param data - Comment data
+ * @param token - JWT token for authentication
+ * @returns Promise with comment result
+ */
+export const commentOnConfession = async (
+  confessionId: string,
+  data: {
+    text: string;
+  },
+  token: string
+): Promise<{
+  success: boolean;
+  message: string;
+  data: {
+    comments: any[];
+    commentsCount: number;
+  };
+}> => {
+  try {
+    const response = await api.post(
+      `/api/confessions/${confessionId}/comment`,
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data.message || "Failed to comment on confession"
+      );
+    } else if (error.request) {
+      throw new Error("Cannot connect to server. Please try again.");
+    } else {
+      throw new Error("An unexpected error occurred");
+    }
+  }
+};
+
 export default api;

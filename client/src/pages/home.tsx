@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import Sidebar from "../components/Sidebar";
-import { getPotentialMatches, swipeUser } from "../utils/api";
+import {
+  getPotentialMatches,
+  swipeUser,
+  getConfessions,
+  likeConfession,
+} from "../utils/api";
 
 // Dummy Stories (no functionality)
 const dummyStories = [
@@ -22,7 +27,7 @@ const dummyStories = [
     id: 3,
     image:
       "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop",
-    label: "Ur confession",
+    label: "Confession",
     hasNotification: false,
   },
   {
@@ -42,85 +47,44 @@ export default function Home() {
   const [swiping, setSwiping] = useState(false);
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
-  // Mock confessions data
-  const [confessions, setConfessions] = useState([
-    {
-      id: 1,
-      user: {
-        name: "Anonymous #456",
-        avatar:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face",
-      },
-      timeAgo: "2 hours ago",
-      content:
-        "Saw you in the library today, couldn't stop thinking about your smile.",
-      likes: 12,
-      comments: 3,
-      isLiked: false,
-    },
-    {
-      id: 2,
-      user: {
-        name: "Anonymous #789",
-        avatar:
-          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-      },
-      timeAgo: "5 hours ago",
-      content:
-        "To the person who returned my lost wallet, you're a real one. Let me buy you a coffee.",
-      likes: 28,
-      comments: 7,
-      isLiked: false,
-    },
-    {
-      id: 3,
-      user: {
-        name: "Anonymous #567",
-        avatar:
-          "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=40&h=40&fit=crop&crop=face",
-      },
-      timeAgo: "1 day ago",
-      content:
-        "Your laugh in the cafeteria yesterday made my whole week brighter.",
-      likes: 34,
-      comments: 5,
-      isLiked: false,
-    },
-    {
-      id: 4,
-      user: {
-        name: "Anonymous #234",
-        avatar:
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=40&h=40&fit=crop&crop=face",
-      },
-      timeAgo: "8 hours ago",
-      content:
-        "Anyone else struggling with calculus? Maybe we could study together sometime?",
-      likes: 15,
-      comments: 9,
-      isLiked: false,
-    },
-  ]);
+  // Confessions state
+  const [confessions, setConfessions] = useState<any[]>([]);
+  const [confessionsLoading, setConfessionsLoading] = useState(true);
+  const [confessionsError, setConfessionsError] = useState<string | null>(null);
 
-  const toggleConfessionLike = (confessionId: number) => {
-    setConfessions((prev) =>
-      prev.map((confession) =>
-        confession.id === confessionId
-          ? {
-              ...confession,
-              isLiked: !confession.isLiked,
-              likes: confession.isLiked
-                ? confession.likes - 1
-                : confession.likes + 1,
-            }
-          : confession
-      )
-    );
+  const toggleConfessionLike = async (confessionId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setConfessionsError("Please login first");
+        return;
+      }
+
+      const response = await likeConfession(confessionId, token);
+
+      if (response.success) {
+        // Update the confession with new like count
+        setConfessions((prev) =>
+          prev.map((confession) =>
+            confession._id === confessionId
+              ? {
+                  ...confession,
+                  likesCount: response.data.likesCount,
+                }
+              : confession
+          )
+        );
+      }
+    } catch (err: any) {
+      console.error("Error liking confession:", err);
+      setConfessionsError(err.message || "Failed to like confession");
+    }
   };
 
-  // Fetch potential matches on component mount
+  // Fetch potential matches and confessions on component mount
   useEffect(() => {
     fetchMatches();
+    fetchConfessions();
   }, []);
 
   const fetchMatches = async () => {
@@ -146,6 +110,32 @@ export default function Home() {
       setError(err.message || "Failed to fetch matches");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchConfessions = async () => {
+    try {
+      setConfessionsLoading(true);
+      setConfessionsError(null);
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setConfessionsError("Please login first");
+        return;
+      }
+
+      const result = await getConfessions(token, 1, 20);
+
+      if (result.success && result.data?.confessions) {
+        setConfessions(result.data.confessions);
+      } else {
+        setConfessions([]);
+        setConfessionsError("No confessions available at the moment!");
+      }
+    } catch (err: any) {
+      setConfessionsError(err.message || "Failed to fetch confessions");
+    } finally {
+      setConfessionsLoading(false);
     }
   };
 
@@ -233,7 +223,7 @@ export default function Home() {
           <div className="px-6 py-8 w-full">
             <div className="flex flex-col gap-8">
               {/* Stories Section - DUMMY (No Functionality) */}
-              <div className="flex w-full overflow-x-auto pb-4 scrollbar-hide">
+              <div className="flex w-full overflow-x-auto scrollbar-hide">
                 <div className="flex flex-row items-start justify-start gap-5 py-4">
                   {dummyStories.map((story) => (
                     <div
@@ -329,10 +319,10 @@ export default function Home() {
               {!loading && matches.length > 0 && (
                 <div className="relative w-full">
                   {/* Scrollable Match Cards Container */}
-                  <div className="relative overflow-hidden py-4">
+                  <div className="relative overflow-hidden">
                     <div
                       ref={carouselRef}
-                      className="flex gap-6 overflow-x-auto snap-x snap-mandatory px-4 scrollbar-hide"
+                      className="flex gap-6 overflow-x-auto snap-x snap-mandatory pr-4 pb-4 scrollbar-hide"
                     >
                       {matches.map((match, index) => {
                         const isFocused = index === currentMatchIndex;
@@ -527,65 +517,140 @@ export default function Home() {
                 <h2 className="text-2xl font-bold tracking-tight">
                   Confessions & Likes
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {confessions.map((confession) => (
-                    <div
-                      key={confession.id}
-                      className="flex flex-col rounded-lg overflow-hidden shadow-lg bg-white dark:bg-slate-900/50 hover:shadow-xl transition-shadow"
+
+                {/* Confessions Error Message */}
+                {confessionsError && (
+                  <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                    <p className="text-sm text-red-600 dark:text-red-400 text-center">
+                      {confessionsError}
+                    </p>
+                  </div>
+                )}
+
+                {/* Confessions Loading State */}
+                {confessionsLoading && (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <svg
+                      className="animate-spin h-12 w-12 text-primary"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
                     >
-                      <div className="p-4 flex flex-col w-full gap-2">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-10 h-10 rounded-full bg-center bg-no-repeat bg-cover"
-                            style={{
-                              backgroundImage: `url(${confession.user.avatar})`,
-                            }}
-                          />
-                          <div>
-                            <h4 className="font-bold">
-                              {confession.user.name}
-                            </h4>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {confession.timeAgo}
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <p className="mt-4 text-lg font-medium text-muted-light dark:text-muted-dark">
+                      Loading confessions...
+                    </p>
+                  </div>
+                )}
+
+                {/* No Confessions State */}
+                {!confessionsLoading &&
+                  confessions.length === 0 &&
+                  !confessionsError && (
+                    <div className="flex flex-col items-center justify-center py-20">
+                      <span className="material-symbols-outlined text-6xl text-muted-light dark:text-muted-dark mb-4">
+                        chat_bubble_outline
+                      </span>
+                      <h3 className="text-2xl font-bold mb-2">
+                        No confessions yet!
+                      </h3>
+                      <p className="text-muted-light dark:text-muted-dark text-center max-w-md">
+                        Be the first to share a confession in your community!
+                      </p>
+                      <button
+                        onClick={fetchConfessions}
+                        className="mt-6 px-6 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary-dark transition-colors"
+                      >
+                        Refresh
+                      </button>
+                    </div>
+                  )}
+
+                {/* Confessions Grid */}
+                {!confessionsLoading && confessions.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {confessions.map((confession) => {
+                      // Format the time ago
+                      const timeAgo = confession.createdAt
+                        ? new Date(confession.createdAt).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )
+                        : "Recently";
+
+                      return (
+                        <div
+                          key={confession._id}
+                          className="flex flex-col rounded-lg overflow-hidden shadow-lg bg-white dark:bg-slate-900/50 hover:shadow-xl transition-shadow h-full"
+                        >
+                          <div className="p-4 flex flex-col w-full gap-2 flex-1">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-white text-lg">
+                                  person
+                                </span>
+                              </div>
+                              <div>
+                                <h4 className="font-bold">
+                                  {confession.username || "Anonymous"}
+                                </h4>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                  {timeAgo}
+                                </p>
+                              </div>
+                            </div>
+                            <p className="mt-2 flex-1">
+                              {confession.confession}
                             </p>
                           </div>
+                          <div className="px-4 pb-4">
+                            <div className="flex items-center gap-4 text-slate-500 dark:text-slate-400">
+                              <button
+                                onClick={() =>
+                                  toggleConfessionLike(confession._id)
+                                }
+                                className="flex items-center gap-1.5 hover:text-pink-500 transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-xl">
+                                  favorite_border
+                                </span>
+                                <span className="text-sm font-medium">
+                                  {confession.likesCount || 0}
+                                </span>
+                              </button>
+                              <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                                <span className="material-symbols-outlined text-xl">
+                                  mode_comment
+                                </span>
+                                <span className="text-sm font-medium">
+                                  {confession.commentsCount || 0}
+                                </span>
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <p className="mt-2">{confession.content}</p>
-                        <div className="flex items-center gap-4 mt-2 text-slate-500 dark:text-slate-400">
-                          <button
-                            onClick={() => toggleConfessionLike(confession.id)}
-                            className={`flex items-center gap-1.5 transition-colors ${
-                              confession.isLiked
-                                ? "text-pink-500"
-                                : "hover:text-pink-500"
-                            }`}
-                          >
-                            <span className="material-symbols-outlined text-xl">
-                              {confession.isLiked
-                                ? "favorite"
-                                : "favorite_border"}
-                            </span>
-                            <span
-                              className={`text-sm font-medium ${
-                                confession.isLiked ? "text-pink-500" : ""
-                              }`}
-                            >
-                              {confession.likes}
-                            </span>
-                          </button>
-                          <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
-                            <span className="material-symbols-outlined text-xl">
-                              mode_comment
-                            </span>
-                            <span className="text-sm font-medium">
-                              {confession.comments}
-                            </span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Info Section */}

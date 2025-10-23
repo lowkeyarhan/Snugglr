@@ -4,7 +4,7 @@ import {
   getConfessions,
   likeConfession,
   commentOnConfession,
-  deleteConfession,
+  manualCleanup,
 } from "../controllers/confessionController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
@@ -14,6 +14,6 @@ router.post("/", authMiddleware, createConfession);
 router.get("/", authMiddleware, getConfessions);
 router.post("/:confessionId/like", authMiddleware, likeConfession);
 router.post("/:confessionId/comment", authMiddleware, commentOnConfession);
-router.delete("/:confessionId", authMiddleware, deleteConfession);
+router.post("/cleanup", authMiddleware, manualCleanup);
 
 export default router;

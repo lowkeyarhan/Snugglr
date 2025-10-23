@@ -13,8 +13,9 @@ const confessionSchema = new mongoose.Schema(
       trim: true,
       maxlength: [1000, "Confession cannot exceed 1000 characters"],
     },
-    community: {
-      type: String,
+    allowedDomain: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AllowedDomain",
       required: true,
     },
     likesCount: {
@@ -46,7 +47,7 @@ const confessionSchema = new mongoose.Schema(
   }
 );
 
-confessionSchema.index({ community: 1, createdAt: -1 });
+confessionSchema.index({ allowedDomain: 1, createdAt: -1 });
 confessionSchema.index({ username: 1 });
 
 const Confession = mongoose.model("Confession", confessionSchema);

@@ -1,12 +1,13 @@
 import Confession from "../models/Confession.js";
 import User from "../models/user.js";
+import AllowedDomain from "../models/AllowedDomain.js";
 import { createAndEmitNotification } from "../utils/notificationHelper.js";
 
 export const createConfession = async (req, res) => {
   try {
     const { text } = req.body;
     const username = req.user.username;
-    const userCommunity = req.user.community;
+    const userEmail = req.user.email;
 
     if (!text || text.trim() === "") {
       return res.status(400).json({
@@ -15,10 +16,32 @@ export const createConfession = async (req, res) => {
       });
     }
 
+    // Get the user's domain from their email
+    const emailDomain = userEmail.split("@")[1]?.toLowerCase();
+    if (!emailDomain) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format",
+      });
+    }
+
+    // Find the allowed domain
+    const allowedDomain = await AllowedDomain.findOne({
+      domain: emailDomain,
+      isActive: true,
+    });
+
+    if (!allowedDomain) {
+      return res.status(403).json({
+        success: false,
+        message: "Domain not authorized for confessions",
+      });
+    }
+
     const newConfession = await Confession.create({
       username: username,
       confession: text.trim(),
-      community: userCommunity,
+      allowedDomain: allowedDomain._id,
     });
 
     res.status(201).json({
@@ -40,17 +63,44 @@ export const createConfession = async (req, res) => {
 
 export const getConfessions = async (req, res) => {
   try {
-    const userCommunity = req.user.community;
+    const userEmail = req.user.email;
     const { page = 1, limit = 20 } = req.query;
 
-    const confessions = await Confession.find({ community: userCommunity })
+    // Get the user's domain from their email
+    const emailDomain = userEmail.split("@")[1]?.toLowerCase();
+    if (!emailDomain) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format",
+      });
+    }
+
+    // Find the allowed domain
+    const allowedDomain = await AllowedDomain.findOne({
+      domain: emailDomain,
+      isActive: true,
+    });
+
+    if (!allowedDomain) {
+      return res.status(403).json({
+        success: false,
+        message: "Domain not authorized for confessions",
+      });
+    }
+
+    const confessions = await Confession.find({
+      allowedDomain: allowedDomain._id,
+    })
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .populate("comments.user", "username name image")
+      .populate("allowedDomain", "domain institutionName")
       .lean();
 
-    const total = await Confession.countDocuments({ community: userCommunity });
+    const total = await Confession.countDocuments({
+      allowedDomain: allowedDomain._id,
+    });
 
     const confessionsWithCounts = confessions.map((confession) => ({
       ...confession,
@@ -89,10 +139,22 @@ export const likeConfession = async (req, res) => {
       });
     }
 
-    if (confession.community !== req.user.community) {
+    // Check if user's domain matches confession's domain
+    const userEmail = req.user.email;
+    const emailDomain = userEmail.split("@")[1]?.toLowerCase();
+
+    const userAllowedDomain = await AllowedDomain.findOne({
+      domain: emailDomain,
+      isActive: true,
+    });
+
+    if (
+      !userAllowedDomain ||
+      confession.allowedDomain.toString() !== userAllowedDomain._id.toString()
+    ) {
       return res.status(403).json({
         success: false,
-        message: "Cannot like confessions from other communities",
+        message: "Cannot like confessions from other domains",
       });
     }
 
@@ -104,7 +166,6 @@ export const likeConfession = async (req, res) => {
     try {
       const confessionAuthor = await User.findOne({
         username: confession.username,
-        community: confession.community,
       });
 
       if (
@@ -126,9 +187,7 @@ export const likeConfession = async (req, res) => {
         );
       }
     } catch (notifError) {
-      console.error(
-        `Error creating like notification: ${notifError.message}`
-      );
+      console.error(`Error creating like notification: ${notifError.message}`);
       // Don't fail the request if notification creation fails
     }
 
@@ -171,10 +230,22 @@ export const commentOnConfession = async (req, res) => {
       });
     }
 
-    if (confession.community !== req.user.community) {
+    // Check if user's domain matches confession's domain
+    const userEmail = req.user.email;
+    const emailDomain = userEmail.split("@")[1]?.toLowerCase();
+
+    const userAllowedDomain = await AllowedDomain.findOne({
+      domain: emailDomain,
+      isActive: true,
+    });
+
+    if (
+      !userAllowedDomain ||
+      confession.allowedDomain.toString() !== userAllowedDomain._id.toString()
+    ) {
       return res.status(403).json({
         success: false,
-        message: "Cannot comment on confessions from other communities",
+        message: "Cannot comment on confessions from other domains",
       });
     }
 
@@ -193,7 +264,6 @@ export const commentOnConfession = async (req, res) => {
     try {
       const confessionAuthor = await User.findOne({
         username: confession.username,
-        community: confession.community,
       });
 
       if (
@@ -216,7 +286,7 @@ export const commentOnConfession = async (req, res) => {
       }
     } catch (notifError) {
       console.error(
-          `Error creating comment notification: ${notifError.message}`
+        `Error creating comment notification: ${notifError.message}`
       );
       // Don't fail the request if notification creation fails
     }
@@ -239,38 +309,40 @@ export const commentOnConfession = async (req, res) => {
   }
 };
 
-export const deleteConfession = async (req, res) => {
+// Automatic cleanup function to delete confessions older than 10 days
+export const cleanupOldConfessions = async () => {
   try {
-    const { confessionId } = req.params;
-    const username = req.user.username;
+    const tenDaysAgo = new Date();
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
-    const confession = await Confession.findById(confessionId);
+    const result = await Confession.deleteMany({
+      createdAt: { $lt: tenDaysAgo },
+    });
+    console.log(
+      `Cleaned up ${result.deletedCount} confessions older than 10 days`
+    );
+    return result.deletedCount;
+  } catch (error) {
+    console.error(`Error cleaning up old confessions: ${error.message}`);
+    throw error;
+  }
+};
 
-    if (!confession) {
-      return res.status(404).json({
-        success: false,
-        message: "Confession not found",
-      });
-    }
-
-    if (confession.username !== username) {
-      return res.status(403).json({
-        success: false,
-        message: "You can only delete your own confessions",
-      });
-    }
-
-    await Confession.findByIdAndDelete(confessionId);
+// Manual cleanup endpoint (for testing or manual triggers)
+export const manualCleanup = async (req, res) => {
+  try {
+    const deletedCount = await cleanupOldConfessions();
 
     res.status(200).json({
       success: true,
-      message: "Confession deleted successfully",
+      message: `Successfully cleaned up ${deletedCount} old confessions`,
+      deletedCount,
     });
   } catch (error) {
-    console.error(`Error deleting confession: ${error.message}`);
+    console.error(`Error in manual cleanup: ${error.message}`);
     res.status(500).json({
       success: false,
-      message: "Error deleting confession",
+      message: "Error during cleanup",
       error: error.message,
     });
   }

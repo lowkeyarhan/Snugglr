@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import { createConfession } from "../utils/api";
 
 export default function Create() {
   const navigate = useNavigate();
   const [confessionText, setConfessionText] = useState("");
   const [selectedVibe, setSelectedVibe] = useState("Crush");
   const [isPosting, setIsPosting] = useState(false);
+  const [isPosted, setIsPosted] = useState(false);
 
   const vibes = ["Crush", "Funny", "Vent", "Question", "Shoutout"];
 
@@ -15,21 +17,38 @@ export default function Create() {
 
     setIsPosting(true);
     try {
-      // TODO: Implement API call to post confession
-      console.log("Posting confession:", {
-        confessionText,
-        vibe: selectedVibe,
-      });
+      // Get the authentication token from localStorage
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Call the API to create confession
+      const response = await createConfession(
+        {
+          text: confessionText.trim(),
+        },
+        token
+      );
 
-      // Reset form and navigate back
-      setConfessionText("");
-      setSelectedVibe("Crush");
-      navigate("/home");
+      if (response.success) {
+        // Set posted state to show "Posted" button
+        setIsPosted(true);
+
+        // Reset form after a short delay
+        setTimeout(() => {
+          setConfessionText("");
+          setSelectedVibe("Crush");
+          setIsPosted(false);
+          navigate("/home");
+        }, 1500);
+      }
     } catch (error) {
       console.error("Error posting confession:", error);
+      // You might want to show an error message to the user here
+      alert(
+        error instanceof Error ? error.message : "Failed to post confession"
+      );
     } finally {
       setIsPosting(false);
     }
@@ -152,8 +171,8 @@ export default function Create() {
                 <div className="mt-8 flex justify-center">
                   <button
                     onClick={handlePost}
-                    disabled={!confessionText.trim() || isPosting}
-                    className="flex items-center justify-center gap-2 w-auto overflow-hidden rounded-full h-16 px-10 text-white text-xl font-bold leading-normal tracking-wide transition-all transform hover:scale-[1.05] active:scale-[0.95] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!confessionText.trim() || isPosting || isPosted}
+                    className="flex items-center justify-center gap-2 w-auto overflow-hidden rounded-full h-16 px-10 text-white text-xl font-bold leading-normal tracking-wide transition-all transform active:scale-[0.95] disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                       backgroundColor: "#FF69B4",
                       boxShadow:
@@ -164,6 +183,11 @@ export default function Create() {
                       <>
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                         <span>Posting...</span>
+                      </>
+                    ) : isPosted ? (
+                      <>
+                        <span className="material-symbols-outlined">check</span>
+                        <span>Posted</span>
                       </>
                     ) : (
                       <>

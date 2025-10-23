@@ -15,6 +15,7 @@ import domainRoutes from "./routes/domainRoutes.js";
 import errorHandler from "./utils/errorHandler.js";
 import chatSocket from "./sockets/chatSocket.js";
 import notificationSocket from "./sockets/notificationSocket.js";
+import { cleanupOldConfessions } from "./controllers/confessionController.js";
 
 dotenv.config();
 const app = express();
@@ -79,6 +80,23 @@ notificationSocket(io);
 
 let PORT = parseInt(process.env.PORT) || 8081;
 
+// Function to start automatic cleanup of old confessions
+const startConfessionCleanup = () => {
+  // Run cleanup immediately on startup
+  cleanupOldConfessions().catch(console.error);
+
+  // Then run cleanup every 24 hours
+  setInterval(async () => {
+    try {
+      await cleanupOldConfessions();
+    } catch (error) {
+      console.error("Error in scheduled confession cleanup:", error);
+    }
+  }, 24 * 60 * 60 * 1000);
+
+  console.log("Confession cleanup scheduled to run every 24 hours");
+};
+
 const startServer = async () => {
   try {
     await connectDB();
@@ -90,6 +108,7 @@ const startServer = async () => {
           console.log(`Server running on port ${port}`);
           console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
           console.log(`Socket.io enabled for real-time features`);
+          startConfessionCleanup();
         })
         .on("error", (err) => {
           if (err.code === "EADDRINUSE") {
