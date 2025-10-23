@@ -7,9 +7,17 @@ const matchSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    user1Username: {
+      type: String,
+      required: true,
+    },
     user2: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
+    },
+    user2Username: {
+      type: String,
       required: true,
     },
     status: {

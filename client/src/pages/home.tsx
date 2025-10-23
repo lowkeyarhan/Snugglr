@@ -257,12 +257,22 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Error Message */}
+              {/* No Potential Matches State */}
               {error && (
-                <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                  <p className="text-sm text-red-600 dark:text-red-400 text-center">
+                <div className="flex flex-col items-center justify-center py-20">
+                  <span className="material-symbols-outlined text-6xl text-muted-light dark:text-muted-dark mb-4">
+                    sentiment_content
+                  </span>
+                  <h3 className="text-2xl font-bold mb-2">We're sorry!</h3>
+                  <p className="text-muted-light dark:text-muted-dark text-center max-w-md">
                     {error}
                   </p>
+                  <button
+                    onClick={fetchMatches}
+                    className="mt-6 px-6 py-3 rounded-lg bg-pink-600 hover:bg-pink-500 text-white shadow-lg shadow-pink-500/30 font-boldrounded-lg font-bold  transition-colors"
+                  >
+                    Refresh
+                  </button>
                 </div>
               )}
 
@@ -336,11 +346,11 @@ export default function Home() {
                             }`}
                             onClick={() => !isFocused && scrollToMatch(index)}
                           >
-                            <div className="flex flex-col items-center justify-center gap-6 bg-white dark:bg-card-dark rounded-lg p-6 shadow-lg">
+                            <div className="flex flex-col items-center justify-center gap-6 bg-white dark:bg-card-dark rounded-lg py-6 px-2 shadow-lg">
                               {/* Profile Picture (Blurred) */}
                               <div className="w-full max-w-40 aspect-square flex items-center justify-center">
                                 <div
-                                  className="w-full h-full rounded-full overflow-hidden shadow-2xl relative bg-gradient-to-br from-primary/20 to-secondary/20"
+                                  className="w-full h-full rounded-full overflow-hidden shadow-2xl relative bg-gray-200 dark:bg-gray-800"
                                   aria-label="Profile picture (blurred for privacy)"
                                 >
                                   {match.image &&
@@ -360,7 +370,7 @@ export default function Home() {
                                     </>
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center">
-                                      <span className="material-symbols-outlined text-6xl text-primary/40">
+                                      <span className="material-symbols-outlined text-6xl text-gray-400 dark:text-gray-600">
                                         person
                                       </span>
                                     </div>
@@ -369,7 +379,7 @@ export default function Home() {
                               </div>
 
                               {/* User Info */}
-                              <div className="text-center">
+                              <div className="text-center ">
                                 <h3 className="text-2xl font-bold">
                                   {match.username || "Anonymous"}
                                 </h3>
@@ -603,8 +613,8 @@ export default function Home() {
                         >
                           <div className="p-4 flex flex-col w-full gap-2 flex-1">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-white text-lg">
+                              <div className="px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-black text-lg">
                                   person
                                 </span>
                               </div>

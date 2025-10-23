@@ -1,5 +1,6 @@
 import Match from "../models/Match.js";
 import Chat from "../models/chat.js";
+import User from "../models/User.js";
 import { createAndEmitNotification } from "../utils/notificationHelper.js";
 
 export const swipe = async (req, res) => {
@@ -7,6 +8,15 @@ export const swipe = async (req, res) => {
     const { targetUserId, action } = req.body;
     const currentUserId = req.user._id;
     const currentUserGender = req.user.gender;
+    const currentUsername = req.user.username;
+
+    console.log("Swipe attempt:", {
+      targetUserId,
+      action,
+      currentUserId,
+      currentUsername,
+      currentUserGender,
+    });
 
     // Validate input
     if (!targetUserId || !action) {
@@ -25,13 +35,34 @@ export const swipe = async (req, res) => {
     }
 
     // Get target user to check gender compatibility
-    const User = (await import("../models/User.js")).default;
-    const targetUser = await User.findById(targetUserId).select("gender");
+    const targetUser = await User.findById(targetUserId).select(
+      "gender username"
+    );
 
     if (!targetUser) {
       return res.status(404).json({
         success: false,
         message: "Target user not found",
+      });
+    }
+
+    console.log("Target user found:", {
+      targetUser: targetUser.username,
+      targetGender: targetUser.gender,
+    });
+
+    // Validate that usernames are available
+    if (!currentUsername) {
+      return res.status(400).json({
+        success: false,
+        message: "Current user username not found",
+      });
+    }
+
+    if (!targetUser.username) {
+      return res.status(400).json({
+        success: false,
+        message: "Target user username not found",
       });
     }
 
@@ -62,15 +93,21 @@ export const swipe = async (req, res) => {
       });
     }
 
-    // Check if target user already liked current user
+    // Check if target user already liked current user (check both directions)
     const existingMatch = await Match.findOne({
-      user1: targetUserId,
-      user2: currentUserId,
+      $or: [
+        { user1: targetUserId, user2: currentUserId },
+        { user1: currentUserId, user2: targetUserId },
+      ],
+      status: "pending",
     });
 
     if (existingMatch) {
-      // It's a mutual match! Update status to "matched"
+      console.log("Found existing match:", existingMatch);
+      // It's a mutual match! Update status to "matched" and usernames
       existingMatch.status = "matched";
+      existingMatch.user1Username = currentUsername;
+      existingMatch.user2Username = targetUser.username;
       await existingMatch.save();
 
       // Create a chat room for these two users
@@ -127,10 +164,31 @@ export const swipe = async (req, res) => {
       });
     }
 
+    // Check if there's already a match in either direction to prevent duplicates
+    const duplicateMatch = await Match.findOne({
+      $or: [
+        { user1: currentUserId, user2: targetUserId },
+        { user1: targetUserId, user2: currentUserId },
+      ],
+    });
+
+    if (duplicateMatch) {
+      console.log("Duplicate match found, skipping creation");
+      return res.status(200).json({
+        success: true,
+        message: "Like already recorded",
+        data: {
+          matched: false,
+        },
+      });
+    }
+
     // No existing match, create a new pending match
     const newMatch = await Match.create({
       user1: currentUserId,
+      user1Username: currentUsername,
       user2: targetUserId,
+      user2Username: targetUser.username,
       status: "pending",
     });
 
@@ -189,9 +247,15 @@ export const getMatches = async (req, res) => {
             ? match.user2
             : match.user1;
 
+        const otherUsername =
+          match.user1._id.toString() === currentUserId.toString()
+            ? match.user2Username
+            : match.user1Username;
+
         return {
           matchId: match._id,
           user: otherUser,
+          username: otherUsername,
           matchedAt: match.updatedAt,
         };
       })
