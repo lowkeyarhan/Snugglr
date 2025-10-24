@@ -281,7 +281,7 @@ export default function Home() {
               {loading && (
                 <div className="flex flex-col items-center justify-center py-20">
                   <svg
-                    className="animate-spin h-12 w-12 text-primary"
+                    className="animate-spin h-12 w-12 text-pink-600"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -529,12 +529,24 @@ export default function Home() {
                   Confessions & Likes
                 </h2>
 
-                {/* Confessions Error Message */}
-                {confessionsError && (
-                  <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                    <p className="text-sm text-red-600 dark:text-red-400 text-center">
+                {/* No Potential Matches State */}
+                {confessionsError && !confessionsLoading && (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <span className="material-symbols-outlined text-6xl text-muted-light dark:text-muted-dark mb-4">
+                      sentiment_content
+                    </span>
+                    <h3 className="text-2xl font-bold mb-2">
+                      No confessions yet!
+                    </h3>
+                    <p className="text-muted-light dark:text-muted-dark text-center max-w-md">
                       {confessionsError}
                     </p>
+                    <button
+                      onClick={fetchConfessions}
+                      className="mt-6 px-6 py-3 rounded-lg bg-pink-600 hover:bg-pink-500 text-white shadow-lg shadow-pink-500/30 font-boldrounded-lg font-bold  transition-colors"
+                    >
+                      Refresh
+                    </button>
                   </div>
                 )}
 
@@ -542,7 +554,7 @@ export default function Home() {
                 {confessionsLoading && (
                   <div className="flex flex-col items-center justify-center py-20">
                     <svg
-                      className="animate-spin h-12 w-12 text-primary"
+                      className="animate-spin h-12 w-12 text-pink-600"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -576,14 +588,14 @@ export default function Home() {
                         chat_bubble_outline
                       </span>
                       <h3 className="text-2xl font-bold mb-2">
-                        No confessions yet!
+                        No confessions found!
                       </h3>
                       <p className="text-muted-light dark:text-muted-dark text-center max-w-md">
-                        Be the first to share a confession in your community!
+                        Be the first to share a confession in your community.
                       </p>
                       <button
                         onClick={fetchConfessions}
-                        className="mt-6 px-6 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary-dark transition-colors"
+                        className="mt-6 px-6 py-3 rounded-lg bg-pink-600 hover:bg-pink-500 text-white shadow-lg shadow-pink-500/30 font-boldrounded-lg font-bold  transition-colors"
                       >
                         Refresh
                       </button>
@@ -676,10 +688,13 @@ export default function Home() {
                   <h3 className="text-lg font-bold mb-2">How it works</h3>
                   <ul className="space-y-2 text-sm text-muted-light dark:text-muted-dark">
                     <li className="flex items-start gap-2">
-                      <span>Swipe right if you're interested, left if not</span>
+                      <span>
+                        Swipe right if you want to explore, meh if you didn't
+                        like them, might work if you do!
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span>If they swipe right on you too, it's a match!</span>
+                      <span>If they like you too, it's a match!</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span>

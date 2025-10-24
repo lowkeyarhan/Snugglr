@@ -66,15 +66,24 @@ export default function Create() {
             {/* Cute background bubbles */}
             <div
               className="pointer-events-none select-none absolute -top-20 -left-20 w-48 h-48 rounded-full opacity-50"
-              style={{ backgroundColor: "#FFC0CB" }}
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(255, 212, 229, 0.5) 0%, rgba(217, 3, 104, 0.5) 100%)",
+              }}
             />
             <div
               className="pointer-events-none select-none absolute -bottom-20 -right-20 w-64 h-64 rounded-full"
-              style={{ backgroundColor: "rgba(64,224,208,0.2)" }}
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(255, 212, 229, 0.5) 0%, rgba(217, 3, 104, 0.5) 100%)",
+              }}
             />
             <div
               className="pointer-events-none select-none absolute top-1/4 right-[5%] w-24 h-24 rounded-full"
-              style={{ backgroundColor: "rgba(255,215,0,0.3)" }}
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(255, 212, 229, 0.2) 0%, rgba(217, 3, 104, 0.2) 100%)",
+              }}
             />
             <div
               className="pointer-events-none select-none absolute bottom-1/3 left-[10%] w-32 h-32 rounded-full"
@@ -154,8 +163,8 @@ export default function Create() {
                                   "0 8px 16px rgba(255, 105, 180, 0.2), 0 4px 6px rgba(255, 105, 180, 0.1)",
                               }
                             : {
-                                backgroundColor: "rgba(255,255,255,0.7)",
-                                borderColor: "#FFC0CB",
+                                backgroundColor: "rgba(255, 212, 229, 0.5)",
+                                border: "none",
                               }
                         }
                       >

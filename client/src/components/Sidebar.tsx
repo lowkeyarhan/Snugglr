@@ -86,7 +86,7 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
       <nav
         className={`flex flex-col gap-2 ${
           collapsed ? "px-1" : "px-2"
-        } py-4 flex-1`}
+        } pb-4 pt-2 flex-1`}
       >
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
