@@ -3,6 +3,7 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
+  "ignoreCommand": "bash check-changes.sh",
   "git": {
     "deploymentEnabled": true
   },
