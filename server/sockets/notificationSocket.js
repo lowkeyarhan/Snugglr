@@ -1,4 +1,4 @@
-import Notification from "../models/Notification.js";
+import Notification from "../models/notification.js";
 
 /**
  * Socket handler for real-time notifications

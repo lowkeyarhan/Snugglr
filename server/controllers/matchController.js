@@ -1,6 +1,6 @@
-import Match from "../models/Match.js";
-import Chat from "../models/Chat.js";
-import User from "../models/User.js";
+import Match from "../models/match.js";
+import Chat from "../models/chat.js";
+import User from "../models/user.js";
 import { createAndEmitNotification } from "../utils/notificationHelper.js";
 
 export const swipe = async (req, res) => {

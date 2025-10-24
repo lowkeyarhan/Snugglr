@@ -1,5 +1,5 @@
-import User from "../models/User.js";
-import Match from "../models/Match.js";
+import User from "../models/user.js";
+import Match from "../models/match.js";
 
 export const updateProfile = async (req, res) => {
   try {

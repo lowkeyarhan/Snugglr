@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
-import User from "../models/User.js";
-import AllowedDomain from "../models/AllowedDomain.js";
+import User from "../models/user.js";
+import AllowedDomain from "../models/alloweddomain.js";
 import generateToken from "../config/token.js";
 import { generateUniqueUsername } from "../utils/usernameGenerator.js";
 

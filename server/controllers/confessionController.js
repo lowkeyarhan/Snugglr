@@ -1,6 +1,6 @@
-import Confession from "../models/Confession.js";
-import User from "../models/User.js";
-import AllowedDomain from "../models/AllowedDomain.js";
+import Confession from "../models/confession.js";
+import User from "../models/user.js";
+import AllowedDomain from "../models/alloweddomain.js";
 import { createAndEmitNotification } from "../utils/notificationHelper.js";
 
 export const createConfession = async (req, res) => {

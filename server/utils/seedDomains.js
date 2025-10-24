@@ -1,4 +1,4 @@
-import AllowedDomain from "../models/AllowedDomain.js";
+import AllowedDomain from "../models/alloweddomain.js";
 import connectDB from "../config/db.js";
 import dotenv from "dotenv";
 

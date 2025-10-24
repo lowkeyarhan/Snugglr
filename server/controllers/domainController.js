@@ -1,4 +1,4 @@
-import AllowedDomain from "../models/AllowedDomain.js";
+import AllowedDomain from "../models/alloweddomain.js";
 
 // Get all allowed domains
 export const getAllDomains = async (req, res) => {
