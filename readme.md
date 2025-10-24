@@ -15,8 +15,12 @@ An anonymous dating platform for college students featuring swipe-based matching
 
 ## Live Demo
 
-- **Frontend**: [Add your frontend URL here]
-- **Backend API**: [Add your backend URL here]
+- **Frontend**: https://snugglr.vercel.app
+- **Backend API**: https://snuggle-backend.onrender.com
+
+## Note
+
+Now it works only with emaisl having the endpoint sst.scaler.com. If you want to test, just continue with any email (eg. arhan.sst.scaler.com)
 
 ## Quick Start
 
