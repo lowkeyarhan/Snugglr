@@ -5,3 +5,5 @@ dist
 *.log
 .env.local
 .env*.local
+../turbo.json
+../package.json
