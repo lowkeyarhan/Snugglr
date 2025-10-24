@@ -48,6 +48,16 @@ app.get("/", (req, res) => {
   });
 });
 
+// Health check endpoint for keeping Render server alive
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Server is healthy",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/match", matchRoutes);
@@ -84,6 +94,32 @@ const startConfessionCleanup = () => {
   console.log("Confession cleanup scheduled to run every 24 hours");
 };
 
+// Function to keep Render server alive by self-ping
+const keepAlive = () => {
+  const url = process.env.RENDER_EXTERNAL_URL || process.env.SERVER_URL;
+  
+  if (!url) {
+    console.log("⚠️ No RENDER_EXTERNAL_URL set, skipping keep-alive pings");
+    return;
+  }
+
+  // Ping every 10 minutes (600000 ms)
+  setInterval(async () => {
+    try {
+      const response = await fetch(`${url}/health`);
+      if (response.ok) {
+        console.log(`✅ Keep-alive ping successful at ${new Date().toISOString()}`);
+      } else {
+        console.log(`⚠️ Keep-alive ping returned status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error(`❌ Keep-alive ping failed: ${error.message}`);
+    }
+  }, 10 * 60 * 1000); // 10 minutes
+
+  console.log("🔄 Keep-alive pings scheduled every 10 minutes");
+};
+
 const startServer = async () => {
   try {
     await connectDB();
@@ -111,6 +147,7 @@ const startServer = async () => {
           console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
           console.log(`Socket.io enabled for real-time features`);
           startConfessionCleanup();
+          keepAlive();
         })
         .on("error", (err) => {
           if (err.code === "EADDRINUSE") {
