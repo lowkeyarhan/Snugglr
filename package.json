@@ -1,0 +1,24 @@
+{
+  "name": "snugglr-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Snugglr - Anonymous Dating & Chat Platform",
+  "packageManager": "npm@10.0.0",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "client:dev": "turbo run dev --filter=client",
+    "server:dev": "turbo run dev --filter=server",
+    "client:build": "turbo run build --filter=client",
+    "server:build": "turbo run build --filter=server"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.8"
+  }
+}
